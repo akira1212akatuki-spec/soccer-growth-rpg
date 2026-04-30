@@ -48,10 +48,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ advice });
   } catch (error: any) {
-    console.error("Gemini API error details:", error);
+    console.error("Gemini API Error Root:", error);
+    const errorMessage = error?.message || "不明なエラー";
+    const errorStatus = error?.status || "500";
+    
     return NextResponse.json({ 
       error: "コーチへの相談中にエラーが発生しました。",
-      details: error.message 
+      details: `${errorMessage} (Status: ${errorStatus})`
     }, { status: 500 });
   }
 }

@@ -82,33 +82,36 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
       addLog(newLog);
       addEXP(category, gainedExp);
 
-      // Gemini APIの呼び出し（個別アドバイス）
+      // タイムアウト設定 (20秒に延長)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒でタイムアウト
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-      fetch("/api/coach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ log: newLog }),
-        signal: controller.signal
-      }).then(res => res.json())
-        .then(data => {
-          clearTimeout(timeoutId);
-          if (data.advice) {
-            useGameStore.getState().updateLogAdvice(newLog.id, data.advice);
-          } else if (data.error) {
-            const detailMsg = data.details ? ` (${data.details})` : "";
-            useGameStore.getState().updateLogAdvice(newLog.id, `エラー: ${data.error}${detailMsg}`);
-          }
-        })
-        .catch(err => {
-          clearTimeout(timeoutId);
-          console.error("Coach API error:", err);
-          const errorMsg = err.name === 'AbortError' 
-            ? "コーチが考え込んでいます（通信タイムアウト）。ネット環境を確認するか、もう一度試してください。" 
-            : "コーチとの通信に失敗しました。";
-          useGameStore.getState().updateLogAdvice(newLog.id, errorMsg);
+      try {
+        const response = await fetch('/api/coach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ log: newLog }),
+          signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
+        const data = await response.json();
+
+        if (response.ok) {
+          useGameStore.getState().updateLogAdvice(newLog.id, data.advice);
+        } else {
+          // API側から返されたエラー詳細を表示
+          const errorMsg = data.details || data.error || "通信エラーが発生しました";
+          useGameStore.getState().updateLogAdvice(newLog.id, `エラー: ${errorMsg}`);
+        }
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          useGameStore.getState().updateLogAdvice(newLog.id, "エラー: コーチが考え込んでしまい、時間切れになりました。もう一度試してください。");
+        } else {
+          useGameStore.getState().updateLogAdvice(newLog.id, `エラー: 接続に失敗しました (${err.message})`);
+        }
+      }
 
       // Gemini APIの呼び出し（総合アドバイス）
       fetch("/api/overall-coach", {
