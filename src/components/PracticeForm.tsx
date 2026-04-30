@@ -83,12 +83,17 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
       addEXP(category, gainedExp);
 
       // Gemini APIの呼び出し（個別アドバイス）
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒でタイムアウト
+
       fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ log: newLog })
+        body: JSON.stringify({ log: newLog }),
+        signal: controller.signal
       }).then(res => res.json())
         .then(data => {
+          clearTimeout(timeoutId);
           if (data.advice) {
             useGameStore.getState().updateLogAdvice(newLog.id, data.advice);
           } else if (data.error) {
@@ -96,8 +101,12 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
           }
         })
         .catch(err => {
+          clearTimeout(timeoutId);
           console.error("Coach API error:", err);
-          useGameStore.getState().updateLogAdvice(newLog.id, "コーチが席を外しているようです。後でもう一度試してください。");
+          const errorMsg = err.name === 'AbortError' 
+            ? "コーチが考え込んでいます（通信タイムアウト）。ネット環境を確認するか、もう一度試してください。" 
+            : "コーチとの通信に失敗しました。";
+          useGameStore.getState().updateLogAdvice(newLog.id, errorMsg);
         });
 
       // Gemini APIの呼び出し（総合アドバイス）
@@ -105,7 +114,7 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          logs: useGameStore.getState().logs, // 新しいログが含まれた状態
+          logs: useGameStore.getState().logs,
           yearlyGoal,
           monthlyGoal
         })
