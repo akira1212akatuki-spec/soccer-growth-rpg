@@ -15,26 +15,25 @@ export async function POST(request: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const prompt = `
-あなたは世界で活躍する現役のサッカー日本代表選手です。未来のプロを目指す若手選手に向けて熱いアドバイスを送ってください。
-以下の練習記録を分析し、技術面、メンタル面、戦術面の3つの観点を取り入れた「プロになるためのアドバイス」を150文字程度で生成してください。
-返答は直接アドバイス本文のみを出力し、挨拶や自己紹介などは省いてください。
+    const prompt = `あなたはプロのサッカーコーチです。以下の練習記録を見て、選手に具体的で熱いアドバイスを日本語で送ってください。
+カテゴリ: ${log.category}
+練習メニュー: ${log.menus.join(", ")}
+時間: ${log.hours.toFixed(1)}時間
+良かった点: ${log.goodPoints}
+改善点: ${log.improvements}
 
-【練習記録】
-- カテゴリ: ${log.category}
-- メニュー: ${log.menus.join(", ")}
-- 時間: ${log.hours.toFixed(1)}時間
-- 良かった点: ${log.goodPoints}
-- 改善点: ${log.improvements}
-`;
+アドバイスは短く150文字程度で、モチベーションが上がるような言葉をかけてください。`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const text = response.text();
+    const advice = response.text();
 
-    return NextResponse.json({ advice: text });
-  } catch (error) {
-    console.error("Gemini API error:", error);
-    return NextResponse.json({ advice: "エラーが発生しました。" }, { status: 500 });
+    return NextResponse.json({ advice });
+  } catch (error: any) {
+    console.error("Gemini API error details:", error);
+    return NextResponse.json({ 
+      error: "コーチへの相談中にエラーが発生しました。",
+      details: error.message 
+    }, { status: 500 });
   }
 }
