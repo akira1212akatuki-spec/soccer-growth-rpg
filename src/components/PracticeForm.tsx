@@ -97,7 +97,8 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
           if (data.advice) {
             useGameStore.getState().updateLogAdvice(newLog.id, data.advice);
           } else if (data.error) {
-            useGameStore.getState().updateLogAdvice(newLog.id, `エラー: ${data.error}`);
+            const detailMsg = data.details ? ` (${data.details})` : "";
+            useGameStore.getState().updateLogAdvice(newLog.id, `エラー: ${data.error}${detailMsg}`);
           }
         })
         .catch(err => {
