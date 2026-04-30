@@ -5,9 +5,9 @@ export async function POST(req: Request) {
   try {
     const { logs, yearlyGoal, monthlyGoal } = await req.json();
 
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "APIキーが設定されていません。" }, { status: 500 });
+      return NextResponse.json({ error: "APIキーが設定されていません。VercelのEnvironment Variablesを確認してください。" }, { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);

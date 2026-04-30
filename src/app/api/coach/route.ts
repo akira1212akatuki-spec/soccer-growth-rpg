@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-
 export async function POST(request: Request) {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+
   if (!apiKey) {
-    return NextResponse.json({ advice: "APIキーが設定されていません。" }, { status: 500 });
+    return NextResponse.json({ advice: "APIキーが設定されていません。VercelのEnvironment Variablesを確認してください。" }, { status: 500 });
   }
 
   try {

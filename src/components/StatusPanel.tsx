@@ -51,23 +51,25 @@ export const StatusPanel = () => {
         {/* キャラクター画像プレースホルダー */}
         <div className="flex-shrink-0 flex flex-col items-center gap-2">
           <div className="text-xl text-yellow-400 font-bold">{playerName}</div>
-          <div className="w-32 h-32 md:w-48 md:h-48 border-2 border-white flex flex-col items-center justify-center relative overflow-hidden">
-            {/* 画像が存在する場合は表示、そうでない場合は絵文字を表示 */}
-            <img 
-              src={imagePath} 
-              alt={charName}
-              className="w-full h-full object-contain z-10 p-1" // object-containで比率を維持しつつ枠内に収める
-              onError={(e) => {
-                // 画像が見つからない場合は非表示にして絵文字を出す
-                (e.target as HTMLImageElement).style.display = 'none';
-                const fallback = (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-emoji') as HTMLElement;
-                if (fallback) fallback.style.display = 'block';
-              }}
-            />
-            <div className="text-6xl hidden fallback-emoji z-0">
-              {charType === "Fire" ? "🔥" : charType === "Water" ? "💧" : "🌿"}
+            <div className="w-32 h-32 md:w-48 md:h-48 border-2 border-white flex flex-col items-center justify-center relative overflow-hidden bg-slate-900">
+              {/* 画像が存在する場合は表示、そうでない場合は絵文字を表示 */}
+              <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                <img 
+                  src={imagePath} 
+                  alt={charName}
+                  className="w-full h-full object-contain z-10 scale-150 transform transition-transform duration-500" // ズームして中心のキャラを強調
+                  onError={(e) => {
+                    // 画像が見つからない場合は非表示にして絵文字を出す
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    const fallback = (e.target as HTMLImageElement).parentElement?.parentElement?.querySelector('.fallback-emoji') as HTMLElement;
+                    if (fallback) fallback.style.display = 'block';
+                  }}
+                />
+              </div>
+              <div className="text-6xl hidden fallback-emoji z-0">
+                {charType === "Fire" ? "🔥" : charType === "Water" ? "💧" : "🌿"}
+              </div>
             </div>
-          </div>
           <p className="text-sm font-bold">{charName}</p>
           <div className="bg-slate-800 border border-white px-3 py-1 text-sm mt-1">
             Total Lv. <span className="text-yellow-400 text-lg">{totalLv}</span>
