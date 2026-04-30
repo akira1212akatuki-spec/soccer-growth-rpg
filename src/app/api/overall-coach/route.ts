@@ -11,13 +11,19 @@ export async function POST(req: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // ログが多い場合は直近の10件などに絞る（トークン節約のため）
     const recentLogs = logs.slice(0, 10);
     const totalHours = logs.reduce((sum: number, log: any) => sum + log.hours, 0);
 
-    const prompt = `
+    const modelNames = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"];
+    let advice = "";
+    let lastError = null;
+
+    for (const modelName of modelNames) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const prompt = `
 あなたは熱血で頼りがいのある、元サッカー日本代表選手のAIコーチです。
 ユーザー（選手）のこれまでの練習記録と目標を総合的に判断して、モチベーションが上がる一言アドバイスを送ってください。
 
@@ -36,11 +42,21 @@ ${recentLogs.map((log: any) => `- ${log.category}: ${log.menus.join(", ")} (${lo
 - 「よっしゃ！」「いいぞ！」のような熱血なトーンでお願いします。
 `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        advice = response.text();
+        if (advice) break;
+      } catch (err: any) {
+        lastError = err;
+        continue;
+      }
+    }
 
-    return NextResponse.json({ advice: text });
+    if (!advice && lastError) {
+      throw lastError;
+    }
+
+    return NextResponse.json({ advice });
   } catch (error) {
     console.error("Overall Coach API error:", error);
     return NextResponse.json({ error: "Failed to generate overall advice." }, { status: 500 });

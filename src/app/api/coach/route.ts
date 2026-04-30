@@ -13,9 +13,16 @@ export async function POST(request: Request) {
     const { log } = body;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    // モデル名の候補をリスト化して、成功するまで試す
+    const modelNames = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"];
+    let advice = "";
+    let lastError = null;
 
-    const prompt = `あなたはプロのサッカーコーチです。以下の練習記録を見て、選手に具体的で熱いアドバイスを日本語で送ってください。
+    for (const modelName of modelNames) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const prompt = `あなたはプロのサッカーコーチです。以下の練習記録を見て、選手に具体的で熱いアドバイスを日本語で送ってください。
 カテゴリ: ${log.category}
 練習メニュー: ${log.menus.join(", ")}
 時間: ${log.hours.toFixed(1)}時間
@@ -24,9 +31,20 @@ export async function POST(request: Request) {
 
 アドバイスは短く150文字程度で、モチベーションが上がるような言葉をかけてください。`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const advice = response.text();
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        advice = response.text();
+        if (advice) break; // 成功したらループを抜ける
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`Model ${modelName} failed, trying next...`, err.message);
+        continue;
+      }
+    }
+
+    if (!advice && lastError) {
+      throw lastError;
+    }
 
     return NextResponse.json({ advice });
   } catch (error: any) {
