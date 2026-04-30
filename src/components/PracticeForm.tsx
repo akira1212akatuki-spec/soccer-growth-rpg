@@ -91,9 +91,14 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
         .then(data => {
           if (data.advice) {
             useGameStore.getState().updateLogAdvice(newLog.id, data.advice);
+          } else if (data.error) {
+            useGameStore.getState().updateLogAdvice(newLog.id, `エラー: ${data.error}`);
           }
         })
-        .catch(err => console.error("Coach API error:", err));
+        .catch(err => {
+          console.error("Coach API error:", err);
+          useGameStore.getState().updateLogAdvice(newLog.id, "コーチが席を外しているようです。後でもう一度試してください。");
+        });
 
       // Gemini APIの呼び出し（総合アドバイス）
       fetch("/api/overall-coach", {
