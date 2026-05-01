@@ -1,21 +1,47 @@
 // src/lib/gameLogic.ts
 
 export const calculateNextEXP = (level: number): number => {
+  // レベル(level + 1)に到達するために必要な累計経験値
   return Math.floor(100 * Math.pow(level, 1.5));
 };
 
 export const calculateLevelFromEXP = (exp: number): number => {
   let level = 1;
-  let currentNeeded = calculateNextEXP(level);
-  let remainingExp = exp;
-
-  while (remainingExp >= currentNeeded) {
-    remainingExp -= currentNeeded;
+  // 累計経験値がしきい値を超えている限りレベルアップ
+  while (level < 100 && exp >= calculateNextEXP(level)) {
     level++;
-    currentNeeded = calculateNextEXP(level);
   }
-
   return level;
+};
+
+export interface ProgressInfo {
+  level: number;
+  currentTotalExp: number;
+  thisLevelStartExp: number;
+  nextLevelThreshold: number;
+  expInLevel: number;
+  expNeededInLevel: number;
+  percentage: number;
+}
+
+export const getLevelProgress = (totalExp: number): ProgressInfo => {
+  const level = calculateLevelFromEXP(totalExp);
+  const thisLevelStartExp = level > 1 ? calculateNextEXP(level - 1) : 0;
+  const nextLevelThreshold = calculateNextEXP(level);
+  
+  const expInLevel = totalExp - thisLevelStartExp;
+  const expNeededInLevel = nextLevelThreshold - thisLevelStartExp;
+  const percentage = Math.min(100, Math.max(0, (expInLevel / expNeededInLevel) * 100));
+
+  return {
+    level,
+    currentTotalExp: totalExp,
+    thisLevelStartExp,
+    nextLevelThreshold,
+    expInLevel,
+    expNeededInLevel,
+    percentage
+  };
 };
 
 export const calculateTotalLevel = (skillExp: number, physicalExp: number, iqExp: number): number => {
@@ -23,6 +49,7 @@ export const calculateTotalLevel = (skillExp: number, physicalExp: number, iqExp
   const physicalLv = calculateLevelFromEXP(physicalExp);
   const iqLv = calculateLevelFromEXP(iqExp);
 
+  // カテゴリレベルの平均をトータルレベルとする
   const total = Math.floor((skillLv + physicalLv + iqLv) / 3);
   return Math.min(total, 100); // Max Lv 100
 };

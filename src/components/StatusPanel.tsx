@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { JRPGWindow } from "./ui/JRPGWindow";
 import { useGameStore } from "@/store/useGameStore";
-import { calculateLevelFromEXP, calculateNextEXP, calculateTotalLevel, getCharacterName, getEvolutionForm } from "@/lib/gameLogic";
+import { getLevelProgress, calculateTotalLevel, getCharacterName, getEvolutionForm } from "@/lib/gameLogic";
 
 export const StatusPanel = () => {
   const { playerName, charType, skillEXP, physicalEXP, iqEXP, yearlyGoal, yearlyDeadline, monthlyGoal, monthlyDeadline, overallAdvice } = useGameStore();
@@ -25,18 +25,16 @@ export const StatusPanel = () => {
   // プレースホルダーの画像パス
   const imagePath = `/assets/char/${charType.toLowerCase()}/form_${form}.png`;
 
-  const renderBar = (label: string, lv: number, exp: number) => {
-    const nextExp = calculateNextEXP(lv);
-    const prevExp = lv > 1 ? calculateNextEXP(lv - 1) : 0;
-    const currentLevelExp = exp - prevExp;
-    const expNeededForLevel = nextExp - prevExp;
-    const percentage = Math.min(100, Math.max(0, (currentLevelExp / expNeededForLevel) * 100));
+  const renderBar = (label: string, exp: number) => {
+    const { level, expInLevel, expNeededInLevel, percentage } = getLevelProgress(exp);
 
     return (
       <div className="mb-2">
         <div className="flex justify-between text-sm mb-1">
-          <span>{label} Lv.{lv}</span>
-          <span>{exp} / {nextExp}</span>
+          <span>{label} Lv.{level}</span>
+          <span className="text-[10px] text-slate-400 self-end">
+            {expInLevel} / {expNeededInLevel}
+          </span>
         </div>
         <div className="w-full bg-slate-800 border border-white h-3">
           <div className="bg-yellow-400 h-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
@@ -105,9 +103,9 @@ export const StatusPanel = () => {
               </div>
             )}
             
-            {renderBar("Skill", skillLv, skillEXP)}
-            {renderBar("Physical", physicalLv, physicalEXP)}
-            {renderBar("IQ", iqLv, iqEXP)}
+            {renderBar("Skill", skillEXP)}
+            {renderBar("Physical", physicalEXP)}
+            {renderBar("IQ", iqEXP)}
           </div>
         </div>
       </div>

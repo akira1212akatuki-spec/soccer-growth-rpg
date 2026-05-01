@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { calculateLevelFromEXP } from '@/lib/gameLogic';
 
 export type PracticeLog = {
   id: string;
@@ -19,6 +20,19 @@ export type Schedule = {
   menus?: string[];
 };
 
+export type EXPResult = {
+  gainedSkill: number;
+  gainedPhysical: number;
+  gainedIQ: number;
+  prevSkillLv: number;
+  newSkillLv: number;
+  prevPhysicalLv: number;
+  newPhysicalLv: number;
+  prevIQLv: number;
+  newIQLv: number;
+  isLevelUp: boolean;
+};
+
 type GameState = {
   playerName: string | null;
   yearlyGoal: string | null;
@@ -33,9 +47,11 @@ type GameState = {
   schedules: Schedule[];
   lastFeedbackDate: string | null; // 振り返りモーダル用
   overallAdvice: string | null; // 総合アドバイス用
+  lastEXPResult: EXPResult | null; // 直近の獲得経験値リザルト
   menuHistory: Record<"Skill" | "Physical" | "IQ", string[]>; // メニュー履歴
   setInitialSetup: (name: string, char: "Fire" | "Water" | "Leaf", yearly: string, yearlyDead: string, monthly: string, monthlyDead: string) => void;
   addEXP: (category: "Skill" | "Physical" | "IQ", amount: number) => void;
+  clearLastEXPResult: () => void;
   addLog: (log: PracticeLog) => void;
   updateLogAdvice: (id: string, advice: string) => void;
   addSchedule: (schedule: Schedule) => void;
@@ -61,6 +77,7 @@ export const useGameStore = create<GameState>()(
       schedules: [],
       lastFeedbackDate: null,
       overallAdvice: null,
+      lastEXPResult: null,
       menuHistory: {
         Skill: ["フリードリブル", "各種リフティング", "コーン・ドリブル", "ターン練習", "シュート練習", "パス練習"],
         Physical: ["走り込み", "ダッシュ", "筋トレ", "体幹トレーニング"],
@@ -88,12 +105,39 @@ export const useGameStore = create<GameState>()(
           addedIQ = amount;
         }
 
+        const prevSkillLv = calculateLevelFromEXP(state.skillEXP);
+        const prevPhysicalLv = calculateLevelFromEXP(state.physicalEXP);
+        const prevIQLv = calculateLevelFromEXP(state.iqEXP);
+
+        const newSkillEXP = state.skillEXP + addedSkill;
+        const newPhysicalEXP = state.physicalEXP + addedPhysical;
+        const newIQEXP = state.iqEXP + addedIQ;
+
+        const newSkillLv = calculateLevelFromEXP(newSkillEXP);
+        const newPhysicalLv = calculateLevelFromEXP(newPhysicalEXP);
+        const newIQLv = calculateLevelFromEXP(newIQEXP);
+
+        const isLevelUp = newSkillLv > prevSkillLv || newPhysicalLv > prevPhysicalLv || newIQLv > prevIQLv;
+
         return { 
-          skillEXP: state.skillEXP + addedSkill,
-          physicalEXP: state.physicalEXP + addedPhysical,
-          iqEXP: state.iqEXP + addedIQ,
+          skillEXP: newSkillEXP,
+          physicalEXP: newPhysicalEXP,
+          iqEXP: newIQEXP,
+          lastEXPResult: {
+            gainedSkill: addedSkill,
+            gainedPhysical: addedPhysical,
+            gainedIQ: addedIQ,
+            prevSkillLv,
+            newSkillLv,
+            prevPhysicalLv,
+            newPhysicalLv,
+            prevIQLv,
+            newIQLv,
+            isLevelUp
+          }
         };
       }),
+      clearLastEXPResult: () => set({ lastEXPResult: null }),
       addLog: (log) => set((state) => ({ logs: [log, ...state.logs] })),
       updateLogAdvice: (id, advice) => set((state) => ({
         logs: state.logs.map(log => log.id === id ? { ...log, aiAdvice: advice } : log)
@@ -123,6 +167,12 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'soccer-rpg-storage',
+      partialize: (state) => {
+        // lastEXPResultは永続化しない
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { lastEXPResult, ...rest } = state;
+        return rest;
+      },
     }
   )
 );

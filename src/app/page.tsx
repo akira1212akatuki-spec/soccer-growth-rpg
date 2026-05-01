@@ -7,6 +7,7 @@ import { AICoach } from "@/components/AICoach";
 import { LevelUpEffect } from "@/components/LevelUpEffect";
 import { FeedbackModal } from "@/components/FeedbackModal";
 import { InitialSetup } from "@/components/InitialSetup";
+import { EXPResultModal } from "@/components/EXPResultModal";
 import { useGameStore } from "@/store/useGameStore";
 
 export default function Home() {
@@ -53,6 +54,7 @@ export default function Home() {
 
       <LevelUpEffect />
       <FeedbackModal />
+      <EXPResultModal />
     </main>
   );
 }

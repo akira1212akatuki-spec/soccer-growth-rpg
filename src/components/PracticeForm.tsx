@@ -136,7 +136,6 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
       setGoodPoints("");
       setImprovements("");
       
-      alert(`練習記録を保存しました！ ${gainedExp} EXP 獲得！`);
       if (onClose) onClose();
     } catch (error) {
       console.error(error);
