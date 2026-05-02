@@ -8,7 +8,6 @@ export const InitialSetup = () => {
   const { setInitialSetup } = useGameStore();
   const [step, setStep] = useState(1);
   const [playerName, setPlayerName] = useState("");
-  const [charType, setCharType] = useState<"Fire" | "Water" | "Leaf" | null>(null);
   const [yearlyGoal, setYearlyGoal] = useState("");
   const [yearlyDeadline, setYearlyDeadline] = useState("");
   const [monthlyGoal, setMonthlyGoal] = useState("");
@@ -19,11 +18,7 @@ export const InitialSetup = () => {
       alert("名前を入力してください。");
       return;
     }
-    if (step === 2 && !charType) {
-      alert("パートナーを選択してください。");
-      return;
-    }
-    if (step === 3 && (yearlyGoal.trim() === "" || monthlyGoal.trim() === "")) {
+    if (step === 2 && (yearlyGoal.trim() === "" || monthlyGoal.trim() === "")) {
       alert("目標を入力してください。");
       return;
     }
@@ -31,17 +26,16 @@ export const InitialSetup = () => {
     if (step < 3) {
       setStep(step + 1);
     } else {
-      setInitialSetup(playerName, charType!, yearlyGoal, yearlyDeadline, monthlyGoal, monthlyDeadline);
-      alert("設定が完了しました！冒険をはじめましょう！");
+      setInitialSetup(playerName, yearlyGoal, yearlyDeadline, monthlyGoal, monthlyDeadline);
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black p-4 overflow-y-auto">
-      <JRPGWindow title="新しい冒険の書" className="w-full max-w-lg animate-fade-in my-auto">
+      <JRPGWindow title="新しい修練の書" className="w-full max-w-lg animate-fade-in my-auto">
         {step === 1 && (
           <div className="flex flex-col gap-4">
-            <p className="leading-relaxed">サッカーを極めたい若者よ、<br/>まずはそなたの名を教えてくれ。</p>
+            <p className="leading-relaxed">サッカーを極めんとする若者よ、<br/>まずはそなたの名を教えてくれ。</p>
             <input 
               type="text" 
               className="bg-slate-800 border border-white p-2 text-xl text-center"
@@ -55,46 +49,8 @@ export const InitialSetup = () => {
         )}
 
         {step === 2 && (
-          <div className="flex flex-col gap-4">
-            <p className="leading-relaxed">{playerName}よ、<br/>そなたの分身となる最初のパートナーを選んでくれ。</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                { type: "Fire" as const, emoji: "🔥", name: "フレイムパピー" },
-                { type: "Water" as const, emoji: "💧", name: "アクアプルプ" },
-                { type: "Leaf" as const, emoji: "🌿", name: "シードタヌノ" }
-              ].map((char) => (
-                <button 
-                  key={char.type}
-                  className={`p-2 border-2 rounded flex flex-col items-center transition-all ${charType === char.type ? "border-yellow-400 bg-slate-700 shadow-[0_0_10px_rgba(251,189,36,0.5)]" : "border-white bg-slate-800"}`}
-                  onClick={() => setCharType(char.type)}
-                >
-                  <div className="w-24 h-24 flex items-center justify-center relative mb-2 overflow-hidden">
-                    <img 
-                      src={`/assets/char/${char.type.toLowerCase()}/form_1.png`} 
-                      alt={char.type}
-                      className="w-full h-full object-contain z-10"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                        const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = 'block';
-                      }}
-                    />
-                    <div className="text-4xl hidden">
-                      {char.emoji}
-                    </div>
-                  </div>
-                  <div className="text-xs font-bold">{char.name}</div>
-                  <div className="text-[10px] text-slate-400">{char.type}</div>
-                </button>
-              ))}
-            </div>
-            <button onClick={handleNext} className="mt-4 bg-blue-700 hover:bg-blue-600 border border-white p-2 text-center text-lg">次へ</button>
-          </div>
-        )}
-
-        {step === 3 && (
           <div className="flex flex-col gap-4 text-sm">
-            <p>最後に、そなたの目標を刻み込むのだ。</p>
+            <p className="text-base">{playerName}よ、<br/>そなたが掲げる「誓い」を刻むのだ。</p>
             <div className="bg-slate-800/50 p-3 border border-slate-600 rounded mb-2">
               <label className="block mb-1 text-yellow-400 font-bold">1年間の目標</label>
               <input 
@@ -104,16 +60,14 @@ export const InitialSetup = () => {
                 onChange={e => setYearlyGoal(e.target.value)} 
                 placeholder="例：レギュラーを獲る、県大会優勝"
               />
-              <label className="block mb-1 text-slate-300 text-xs font-bold">いつまでに達成するか（期日）</label>
-              <div className="relative">
-                <input 
-                  type="date" 
-                  className="w-full bg-slate-900 border border-white p-2 text-white appearance-none cursor-pointer focus:border-yellow-400 outline-none"
-                  style={{ colorScheme: 'dark' }} // ブラウザ標準のカレンダーアイコンなどを白くする
-                  value={yearlyDeadline} 
-                  onChange={e => setYearlyDeadline(e.target.value)} 
-                />
-              </div>
+              <label className="block mb-1 text-slate-300 text-xs font-bold">達成期限</label>
+              <input 
+                type="date" 
+                className="w-full bg-slate-900 border border-white p-2 text-white"
+                style={{ colorScheme: 'dark' }}
+                value={yearlyDeadline} 
+                onChange={e => setYearlyDeadline(e.target.value)} 
+              />
             </div>
             
             <div className="bg-slate-800/50 p-3 border border-slate-600 rounded">
@@ -125,18 +79,52 @@ export const InitialSetup = () => {
                 onChange={e => setMonthlyGoal(e.target.value)} 
                 placeholder="例：リフティング100回、ドリブルのキレを上げる"
               />
-              <label className="block mb-1 text-slate-300 text-xs font-bold">いつまでに達成するか（期日）</label>
-              <div className="relative">
-                <input 
-                  type="date" 
-                  className="w-full bg-slate-900 border border-white p-2 text-white appearance-none cursor-pointer focus:border-yellow-400 outline-none"
-                  style={{ colorScheme: 'dark' }}
-                  value={monthlyDeadline} 
-                  onChange={e => setMonthlyDeadline(e.target.value)} 
-                />
+              <label className="block mb-1 text-slate-300 text-xs font-bold">達成期限</label>
+              <input 
+                type="date" 
+                className="w-full bg-slate-900 border border-white p-2 text-white"
+                style={{ colorScheme: 'dark' }}
+                value={monthlyDeadline} 
+                onChange={e => setMonthlyDeadline(e.target.value)} 
+              />
+            </div>
+            <button onClick={handleNext} className="mt-4 bg-blue-700 hover:bg-blue-600 border border-white p-2 text-center text-lg">次へ</button>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="flex flex-col gap-6">
+            <div className="flex justify-center gap-4 py-4 bg-slate-900/50 rounded-lg border border-slate-700">
+              <div className="flex flex-col items-center">
+                <img src="/assets/char/fire/form_1.png" alt="火" className="w-16 h-16 object-contain" />
+                <span className="text-[10px] text-red-400">火の体</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <img src="/assets/char/water/form_1.png" alt="水" className="w-16 h-16 object-contain" />
+                <span className="text-[10px] text-blue-400">水の技</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <img src="/assets/char/leaf/form_1.png" alt="草" className="w-16 h-16 object-contain" />
+                <span className="text-[10px] text-green-400">草の知</span>
               </div>
             </div>
-            <button onClick={handleNext} className="mt-4 bg-blue-700 hover:bg-blue-600 border border-white p-2 text-center text-lg">決定</button>
+            
+            <div className="text-sm leading-relaxed space-y-4 text-slate-200">
+              <p className="text-yellow-400 font-bold text-base">「{playerName}よ、よくぞここへ至った。</p>
+              <p>私はサッカーの神。君の努力の行く末を見守る者だ。</p>
+              <p>ここに、君の分身となる3匹の霊獣を授けよう。<br/>
+              力強き火の体（体力）、清らかな水の技（スキル）、そして賢明なる草の知（IQ）。</p>
+              <p>彼らは君の汗を糧とし、君の成長と共にその姿を変えていく。日々の鍛錬を怠らぬことだ。</p>
+              <p>3つの魂が重なり、『完全体』へと進化したとき、君はフィールドを支配する真の王となるだろう。</p>
+              <p className="text-yellow-400 font-bold text-center pt-2">さあ、最初のボールを蹴り出すがよい！」</p>
+            </div>
+            
+            <button 
+              onClick={handleNext} 
+              className="mt-2 bg-yellow-600 hover:bg-yellow-500 border-2 border-white p-3 text-center text-xl font-black text-white shadow-[0_0_15px_rgba(234,179,8,0.4)] transition-all"
+            >
+              冒険を始める
+            </button>
           </div>
         )}
       </JRPGWindow>

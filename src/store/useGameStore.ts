@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { calculateLevelFromEXP } from '@/lib/gameLogic';
+import { calculateLevelFromEXP, getEvolutionForm } from '@/lib/gameLogic';
 
 export type PracticeLog = {
   id: string;
@@ -31,6 +31,7 @@ export type EXPResult = {
   prevIQLv: number;
   newIQLv: number;
   isLevelUp: boolean;
+  evolutions: ("Fire" | "Water" | "Leaf")[];
 };
 
 type GameState = {
@@ -39,17 +40,17 @@ type GameState = {
   yearlyDeadline: string | null;
   monthlyGoal: string | null;
   monthlyDeadline: string | null;
-  charType: "Fire" | "Water" | "Leaf" | null;
   skillEXP: number;
   physicalEXP: number;
   iqEXP: number;
   logs: PracticeLog[];
   schedules: Schedule[];
-  lastFeedbackDate: string | null; // 振り返りモーダル用
-  overallAdvice: string | null; // 総合アドバイス用
-  lastEXPResult: EXPResult | null; // 直近の獲得経験値リザルト
-  menuHistory: Record<"Skill" | "Physical" | "IQ", string[]>; // メニュー履歴
-  setInitialSetup: (name: string, char: "Fire" | "Water" | "Leaf", yearly: string, yearlyDead: string, monthly: string, monthlyDead: string) => void;
+  lastFeedbackDate: string | null;
+  overallAdvice: string | null;
+  lastEXPResult: EXPResult | null;
+  menuHistory: Record<"Skill" | "Physical" | "IQ", string[]>;
+  setInitialSetup: (name: string, yearly: string, yearlyDead: string, monthly: string, monthlyDead: string) => void;
+  updateGoals: (yearly: string, yearlyDead: string, monthly: string, monthlyDead: string) => void;
   addEXP: (category: "Skill" | "Physical" | "IQ", amount: number) => void;
   clearLastEXPResult: () => void;
   addLog: (log: PracticeLog) => void;
@@ -69,7 +70,6 @@ export const useGameStore = create<GameState>()(
       yearlyDeadline: null,
       monthlyGoal: null,
       monthlyDeadline: null,
-      charType: null,
       skillEXP: 0,
       physicalEXP: 0,
       iqEXP: 0,
@@ -83,8 +83,11 @@ export const useGameStore = create<GameState>()(
         Physical: ["走り込み", "ダッシュ", "筋トレ", "体幹トレーニング"],
         IQ: ["試合動画の分析", "戦術本を読む", "イメージトレーニング", "youtube動画の視聴"]
       },
-      setInitialSetup: (name, char, yearly, yearlyDead, monthly, monthlyDead) => set({ 
-        playerName: name, charType: char, yearlyGoal: yearly, yearlyDeadline: yearlyDead, monthlyGoal: monthly, monthlyDeadline: monthlyDead 
+      setInitialSetup: (name, yearly, yearlyDead, monthly, monthlyDead) => set({ 
+        playerName: name, yearlyGoal: yearly, yearlyDeadline: yearlyDead, monthlyGoal: monthly, monthlyDeadline: monthlyDead 
+      }),
+      updateGoals: (yearly, yearlyDead, monthly, monthlyDead) => set({
+        yearlyGoal: yearly, yearlyDeadline: yearlyDead, monthlyGoal: monthly, monthlyDeadline: monthlyDead
       }),
       addEXP: (category, amount) => set((state) => {
         let addedSkill = 0;
@@ -119,6 +122,12 @@ export const useGameStore = create<GameState>()(
 
         const isLevelUp = newSkillLv > prevSkillLv || newPhysicalLv > prevPhysicalLv || newIQLv > prevIQLv;
 
+        // 進化チェック
+        const evolutions: ("Fire" | "Water" | "Leaf")[] = [];
+        if (getEvolutionForm(newPhysicalLv) > getEvolutionForm(prevPhysicalLv)) evolutions.push("Fire");
+        if (getEvolutionForm(newSkillLv) > getEvolutionForm(prevSkillLv)) evolutions.push("Water");
+        if (getEvolutionForm(newIQLv) > getEvolutionForm(prevIQLv)) evolutions.push("Leaf");
+
         return { 
           skillEXP: newSkillEXP,
           physicalEXP: newPhysicalEXP,
@@ -133,7 +142,8 @@ export const useGameStore = create<GameState>()(
             newPhysicalLv,
             prevIQLv,
             newIQLv,
-            isLevelUp
+            isLevelUp,
+            evolutions
           }
         };
       }),
@@ -168,8 +178,6 @@ export const useGameStore = create<GameState>()(
     {
       name: 'soccer-rpg-storage',
       partialize: (state) => {
-        // lastEXPResultは永続化しない
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { lastEXPResult, ...rest } = state;
         return rest;
       },

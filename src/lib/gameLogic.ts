@@ -8,7 +8,7 @@ export const calculateNextEXP = (level: number): number => {
 export const calculateLevelFromEXP = (exp: number): number => {
   let level = 1;
   const floorExp = Math.floor(exp);
-  // 累計経験値がしきい値を超えている限りレベルアップ (上限を999に緩和)
+  // 累計経験値がしきい値を超えている限りレベルアップ
   while (level < 999 && floorExp >= calculateNextEXP(level)) {
     level++;
   }
@@ -45,20 +45,10 @@ export const getLevelProgress = (totalExp: number): ProgressInfo => {
   };
 };
 
-export const calculateTotalLevel = (skillExp: number, physicalExp: number, iqExp: number): number => {
-  const skillLv = calculateLevelFromEXP(skillExp);
-  const physicalLv = calculateLevelFromEXP(physicalExp);
-  const iqLv = calculateLevelFromEXP(iqExp);
-
-  // カテゴリレベルの平均をトータルレベルとする
-  const total = Math.floor((skillLv + physicalLv + iqLv) / 3);
-  return Math.min(total, 100); // Max Lv 100
-};
-
 export const calculateEXPMultiplier = (hours: number, category: "Skill" | "Physical" | "IQ"): number => {
   let baseHours = 1.5;
   if (category === "IQ") baseHours = 0.5;
-  if (category === "Physical") baseHours = 0.75; // 45分
+  if (category === "Physical") baseHours = 0.75; 
   
   if (hours < baseHours) {
     const val = 0.3 + 0.7 * Math.pow(hours / baseHours, 2);
@@ -67,7 +57,7 @@ export const calculateEXPMultiplier = (hours: number, category: "Skill" | "Physi
     const val = 1.0 + 1.5 * Math.pow((hours - baseHours) / baseHours, 2);
     return Math.min(2.5, Number(val.toFixed(2)));
   } else {
-    return 2.5; // Safety Cap
+    return 2.5;
   }
 };
 
@@ -76,11 +66,15 @@ const evolutionBoundaries = [
   55, 60, 65, 70, 75, 81, 87, 93, 100
 ];
 
-export const getEvolutionForm = (totalLevel: number): number => {
+export const getEvolutionForm = (level: number): number => {
   for (let i = 0; i < evolutionBoundaries.length; i++) {
-    if (totalLevel < evolutionBoundaries[i]) return i + 1;
+    if (level < evolutionBoundaries[i]) return i + 1;
   }
   return 20; // Lv100以上
+};
+
+export const isEvolutionLevel = (level: number): boolean => {
+  return evolutionBoundaries.includes(level);
 };
 
 const namesFire = [
@@ -104,9 +98,9 @@ const namesLeaf = [
   "聖樹獣ユグドラシル", "アンティグラビティ・フィールド", "ゴッド・ブレス", "ワールド・ツリー・エフェクト", "万物神ユグドラシル・ゼロ"
 ];
 
-export const getCharacterName = (type: "Fire" | "Water" | "Leaf", totalLevel: number): string => {
-  const stage = getEvolutionForm(totalLevel);
-  const index = stage - 1;
+export const getCharacterName = (type: "Fire" | "Water" | "Leaf", level: number): string => {
+  const stage = getEvolutionForm(level);
+  const index = Math.min(stage - 1, 19);
   if (type === "Fire") return namesFire[index];
   if (type === "Water") return namesWater[index];
   return namesLeaf[index];

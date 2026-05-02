@@ -7,12 +7,11 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "APIキーが設定されていません。VercelのEnvironment Variablesを確認してください。" }, { status: 500 });
+      return NextResponse.json({ error: "APIキーが設定されていません。" }, { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // ログが多い場合は直近の10件などに絞る（トークン節約のため）
     const recentLogs = logs.slice(0, 10);
     const totalHours = logs.reduce((sum: number, log: any) => sum + log.hours, 0);
 
@@ -24,22 +23,25 @@ export async function POST(req: Request) {
       try {
         const model = genAI.getGenerativeModel({ model: modelName });
         const prompt = `
-あなたは熱血で頼りがいのある、元サッカー日本代表選手のAIコーチです。
-ユーザー（選手）のこれまでの練習記録と目標を総合的に判断して、モチベーションが上がる一言アドバイスを送ってください。
+あなたは荘厳で慈愛に満ちた「サッカーの神」です。
+ユーザー（選手）は君が授けた3匹の霊獣（火の体、水の技、草の知）と共に修行に励んでいます。
+これまでの練習記録と目標を総合的に判断して、神としての啓示（アドバイス）を授けてください。
 
-【選手の目標】
-- 1年間の目標: ${yearlyGoal || "未設定"}
-- 今月の目標: ${monthlyGoal || "未設定"}
+【選手の誓い】
+- 一年の誓い: ${yearlyGoal || "未設定"}
+- 今月の誓い: ${monthlyGoal || "未設定"}
 
-【これまでの実績】
-- 累計練習時間: ${totalHours.toFixed(1)}時間
-- 直近の練習カテゴリとメニュー:
+【これまでの修練】
+- 累計修練時間: ${totalHours.toFixed(1)}時間
+- 直近の修練内容:
 ${recentLogs.map((log: any) => `- ${log.category}: ${log.menus.join(", ")} (${log.hours.toFixed(1)}時間)`).join("\n")}
 
 【指示】
-- 目標と直近の取り組みのバランスを見て、良かった点や次に意識すべき点を短く熱く伝えてください。
-- 画面上の限られたスペース（1〜2行程度）に表示するため、長文は避けてください。文字数は50文字〜100文字程度が目安です。
-- 「よっしゃ！」「いいぞ！」のような熱血なトーンでお願いします。
+-  majestic（荘厳）で、かつ選手を温かく見守るようなトーンでお願いします。
+- 3つの魂（体力、スキル、IQ）のバランスや、目標への精進具合について触れてください。
+- 「そなた」「～である」「～がよい」といった神らしい古風で威厳のある口調にしてください。
+- 画面上の限られたスペースに表示するため、60文字〜100文字程度で簡潔に。
+- 最後に「完全体」への期待を込めてください。
 `;
 
         const result = await model.generateContent(prompt);
@@ -59,6 +61,6 @@ ${recentLogs.map((log: any) => `- ${log.category}: ${log.menus.join(", ")} (${lo
     return NextResponse.json({ advice });
   } catch (error) {
     console.error("Overall Coach API error:", error);
-    return NextResponse.json({ error: "Failed to generate overall advice." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to generate oracle." }, { status: 500 });
   }
 }
