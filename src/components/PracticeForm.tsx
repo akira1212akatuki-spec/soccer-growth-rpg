@@ -40,7 +40,9 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
 
   const handleAddNewMenu = () => {
     if (newMenu.trim() !== "" && !selectedMenus.includes(newMenu.trim())) {
-      setSelectedMenus([...selectedMenus, newMenu.trim()]);
+      const addedMenu = newMenu.trim();
+      setSelectedMenus([...selectedMenus, addedMenu]);
+      addMenuHistory(category, [addedMenu]); // その場で履歴に追加
       setNewMenu("");
     }
   };
@@ -167,13 +169,13 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
 
       <div>
         <label className="block mb-2 text-yellow-400">練習メニュー (複数選択可)</label>
-        <div className="bg-slate-900/50 border border-dashed border-slate-500 p-3 flex flex-wrap gap-2 mb-2 h-32 overflow-y-auto w-full">
+        <div className="bg-slate-900/50 border border-dashed border-slate-500 p-3 grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2 h-40 overflow-y-auto w-full">
           {currentHistory.map(menu => (
             <button 
               key={menu}
               type="button"
               onClick={() => handleMenuToggle(menu)}
-              className={`px-2 py-1 border rounded text-xs transition-colors whitespace-normal text-left ${
+              className={`px-2 py-1 border rounded text-[10px] transition-colors whitespace-normal flex items-center justify-center text-center h-10 ${
                 selectedMenus.includes(menu) ? "bg-blue-600 border-white font-bold" : "bg-slate-800 border-slate-600 text-slate-300"
               }`}
             >

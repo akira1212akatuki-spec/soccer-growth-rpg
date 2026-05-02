@@ -25,34 +25,47 @@ export const EXPResultModal = () => {
   const renderRow = (label: string, gained: number, prevLv: number, newLv: number) => {
     const levelUp = newLv > prevLv;
     return (
-      <div className="flex flex-col gap-1 border-b border-slate-700 pb-2">
+      <div className="flex flex-col gap-1 border-b border-slate-700/50 pb-2">
         <div className="flex justify-between items-center">
-          <span className="text-yellow-400 font-bold">{label}</span>
-          <span className="text-white">+{gained} EXP</span>
+          <span className="text-yellow-400 font-bold tracking-wider">{label}</span>
+          <span className="text-white font-mono">+{gained} EXP</span>
         </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-400">Lv.{prevLv}</span>
-          <span className="text-slate-500">→</span>
-          <span className={`font-bold ${levelUp ? "text-yellow-400 animate-pulse" : "text-white"}`}>
-            Lv.{newLv}
-          </span>
-          {levelUp && <span className="bg-yellow-600 text-[10px] px-1 rounded text-white animate-bounce">LEVEL UP!</span>}
+        <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-1">
+            <span className="text-slate-400 text-xs">Lv.</span>
+            <span className="text-white font-bold">{prevLv}</span>
+          </div>
+          <span className="text-yellow-500 font-bold">▶</span>
+          <div className="flex items-center gap-1">
+            <span className="text-slate-400 text-xs">Lv.</span>
+            <span className={`text-xl font-black ${levelUp ? "text-yellow-400 animate-pulse scale-110 inline-block" : "text-white"}`}>
+              {newLv}
+            </span>
+          </div>
+          {levelUp && (
+            <span className="ml-auto bg-yellow-500 text-[10px] px-2 py-0.5 rounded-full text-black font-black animate-bounce shadow-[0_0_10px_rgba(234,179,8,0.5)]">
+              LEVEL UP!
+            </span>
+          )}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 animate-fade-in pointer-events-auto">
-      <JRPGWindow title="修練結果" className="w-full max-w-sm">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in pointer-events-auto">
+      <JRPGWindow title="修練結果 - PRACTICE RESULT" className="w-full max-w-sm border-2 border-yellow-500 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
         <div className="flex flex-col gap-4">
           {isLevelUp && (
-            <div className="text-center py-2 bg-yellow-900/30 border border-yellow-500/50 rounded mb-2">
-              <span className="text-xl font-bold text-yellow-400 animate-bounce block">LEVEL UP!!</span>
+            <div className="text-center py-3 bg-gradient-to-r from-yellow-900/40 via-yellow-600/40 to-yellow-900/40 border-y border-yellow-500/50 my-2 relative overflow-hidden">
+              <div className="absolute inset-0 bg-yellow-400/10 animate-pulse"></div>
+              <span className="text-2xl font-black text-yellow-400 animate-bounce block drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                LEVEL UP!!
+              </span>
             </div>
           )}
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4 py-2">
             {renderRow("Skill", gainedSkill, prevSkillLv, newSkillLv)}
             {renderRow("Physical", gainedPhysical, prevPhysicalLv, newPhysicalLv)}
             {renderRow("IQ", gainedIQ, prevIQLv, newIQLv)}
