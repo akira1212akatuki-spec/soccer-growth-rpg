@@ -11,7 +11,7 @@ import { EXPResultModal } from "@/components/EXPResultModal";
 import { useGameStore } from "@/store/useGameStore";
 
 export default function Home() {
-  const { playerName, charType, yearlyGoal } = useGameStore();
+  const { playerName, yearlyGoal } = useGameStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function Home() {
   if (!mounted) return null;
 
   // 初期設定が完了していない場合はウィザードを表示
-  if (!playerName || !charType || !yearlyGoal) {
+  if (!playerName || !yearlyGoal) {
     return (
       <main className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto flex items-center justify-center">
         <InitialSetup />
