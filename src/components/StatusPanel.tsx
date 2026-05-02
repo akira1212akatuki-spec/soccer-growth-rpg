@@ -15,9 +15,6 @@ export const StatusPanel = () => {
 
   if (!mounted || !charType) return null;
 
-  const skillLv = calculateLevelFromEXP(skillEXP);
-  const physicalLv = calculateLevelFromEXP(physicalEXP);
-  const iqLv = calculateLevelFromEXP(iqEXP);
   const totalLv = calculateTotalLevel(skillEXP, physicalEXP, iqEXP);
   const form = getEvolutionForm(totalLv);
   const charName = getCharacterName(charType, totalLv);

@@ -7,8 +7,9 @@ export const calculateNextEXP = (level: number): number => {
 
 export const calculateLevelFromEXP = (exp: number): number => {
   let level = 1;
-  // 累計経験値がしきい値を超えている限りレベルアップ
-  while (level < 100 && exp >= calculateNextEXP(level)) {
+  const floorExp = Math.floor(exp);
+  // 累計経験値がしきい値を超えている限りレベルアップ (上限を999に緩和)
+  while (level < 999 && floorExp >= calculateNextEXP(level)) {
     level++;
   }
   return level;
