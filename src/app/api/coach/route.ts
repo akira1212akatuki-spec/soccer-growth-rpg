@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     
     // モデル名の候補をリスト化して、成功するまで試す
-    const modelNames = ["gemini-1.5-flash"];
+    const modelNames = ["gemini-2.5-flash"];
     let advice = "";
     let lastError = null;
 

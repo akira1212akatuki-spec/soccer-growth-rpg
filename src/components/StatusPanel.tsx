@@ -40,7 +40,7 @@ export const StatusPanel = () => {
         <div className="w-full mt-1">
           <div className="flex justify-between text-[10px] mb-0.5">
             <span className="font-bold text-white">{label} Lv.{level}</span>
-            <span className="text-slate-400">{percentage.toFixed(0)}%</span>
+            <span className="text-slate-400">{Math.floor(expInLevel)} / {expNeededInLevel} EXP</span>
           </div>
           <div className="w-full bg-slate-800 border border-slate-600 h-1.5">
             <div className={`${barColor} h-full transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
