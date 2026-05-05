@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const recentLogs = logs.slice(0, 10);
     const totalHours = logs.reduce((sum: number, log: any) => sum + log.hours, 0);
 
-    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-latest"];
+    const modelNames = ["gemini-1.5-flash"];
     let advice = "";
     let lastError = null;
 
