@@ -10,7 +10,7 @@ interface PracticeFormProps {
 }
 
 export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
-  const { addLog, addEXP, menuHistory, addMenuHistory, setOverallAdvice, yearlyGoal, monthlyGoal } = useGameStore();
+  const { addLog, addEXP, menuHistory, addMenuHistory, setOverallAdvice, yearlyGoal, monthlyGoal, schedules } = useGameStore();
   const [loading, setLoading] = useState(false);
   
   const [date, setDate] = useState(initialDate || new Date().toISOString().split("T")[0]);
@@ -65,8 +65,15 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
       // 時間を10進数に変換
       const totalHours = inputHours + (inputMinutes / 60);
       
+      // 予約との照合
+      const matchingSchedule = schedules.find(s => s.date === date && s.category === category);
+      const isReserved = !!matchingSchedule;
+
       // EXP計算
-      const multiplier = calculateEXPMultiplier(totalHours, category);
+      let multiplier = calculateEXPMultiplier(totalHours, category);
+      if (isReserved) {
+        multiplier *= 1.2;
+      }
       const baseExp = 100;
       const gainedExp = Math.floor(baseExp * multiplier);
 

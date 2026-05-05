@@ -22,6 +22,9 @@ export const Calendar = () => {
   const [selectedMenus, setSelectedMenus] = useState<string[]>([]);
   const [newMenu, setNewMenu] = useState("");
 
+  // アドバイス再読み込み用の状態
+  const [loadingAdviceId, setLoadingAdviceId] = useState<string | null>(null);
+
   // スケジュール詳細用ポップアップ
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
 
@@ -95,6 +98,41 @@ export const Calendar = () => {
     if (selectedSchedule) {
       removeSchedule(selectedSchedule.id);
       setSelectedSchedule(null);
+    }
+  };
+
+  const handleReloadAdvice = async (log: PracticeLog) => {
+    if (loadingAdviceId) return;
+    setLoadingAdviceId(log.id);
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+      const response = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ log }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      const data = await response.json();
+
+      if (response.ok) {
+        useGameStore.getState().updateLogAdvice(log.id, data.advice);
+      } else {
+        const errorMsg = data.details || data.error || "通信エラーが発生しました";
+        useGameStore.getState().updateLogAdvice(log.id, `エラー: ${errorMsg}`);
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        useGameStore.getState().updateLogAdvice(log.id, "エラー: コーチが考え込んでしまい、時間切れになりました。もう一度試してください。");
+      } else {
+        useGameStore.getState().updateLogAdvice(log.id, `エラー: 接続に失敗しました (${err.message})`);
+      }
+    } finally {
+      setLoadingAdviceId(null);
     }
   };
 
@@ -238,10 +276,29 @@ export const Calendar = () => {
                               <span className="text-yellow-400 text-xs block mb-1">改善点:</span>
                               <p className="text-xs whitespace-pre-wrap">{log.improvements}</p>
                             </div>
-                            {log.aiAdvice && (
-                              <div className="mt-2 bg-slate-900 border border-blue-500 p-2 rounded">
-                                <span className="text-blue-400 text-xs font-bold block mb-1">コーチからのアドバイス:</span>
+                            {log.aiAdvice ? (
+                              <div className="mt-2 bg-slate-900 border border-blue-500 p-2 rounded relative">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="text-blue-400 text-xs font-bold block">コーチからのアドバイス:</span>
+                                  <button 
+                                    onClick={() => handleReloadAdvice(log)}
+                                    disabled={loadingAdviceId === log.id}
+                                    className="text-[10px] bg-slate-800 hover:bg-slate-700 border border-blue-500 text-blue-300 px-2 py-0.5 rounded disabled:opacity-50"
+                                  >
+                                    {loadingAdviceId === log.id ? "再読込中..." : "🔄 再読込"}
+                                  </button>
+                                </div>
                                 <p className="text-xs whitespace-pre-wrap">{log.aiAdvice}</p>
+                              </div>
+                            ) : (
+                              <div className="mt-2 flex justify-end">
+                                <button 
+                                  onClick={() => handleReloadAdvice(log)}
+                                  disabled={loadingAdviceId === log.id}
+                                  className="text-[10px] bg-blue-900/50 hover:bg-blue-800/50 border border-blue-500 text-blue-300 px-3 py-1.5 rounded disabled:opacity-50"
+                                >
+                                  {loadingAdviceId === log.id ? "考え中..." : "コーチにアドバイスをもらう"}
+                                </button>
                               </div>
                             )}
                           </div>
