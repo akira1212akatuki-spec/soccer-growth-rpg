@@ -79,7 +79,7 @@ export const EXPResultModal = () => {
           </div>
 
           <div className="flex flex-col gap-4 py-2">
-            {renderRow("Physical", "火の体", gainedPhysical, prevPhysicalLv, newPhysicalLv)}
+            {renderRow("Fire", "火の体", gainedPhysical, prevPhysicalLv, newPhysicalLv)}
             {renderRow("Water", "水の技", gainedSkill, prevSkillLv, newSkillLv)}
             {renderRow("Leaf", "草の知", gainedIQ, prevIQLv, newIQLv)}
           </div>
