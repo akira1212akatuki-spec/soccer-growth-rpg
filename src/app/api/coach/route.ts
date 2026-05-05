@@ -23,22 +23,22 @@ export async function POST(request: Request) {
       try {
         const model = genAI.getGenerativeModel({ model: modelName });
         const prompt = `
-あなたは荘厳で慈愛に満ちた「サッカーの神」です。
-ユーザー（選手）が授けた3匹の霊獣（火の体、水の技、草の知）のうち、
-今回は特に「${log.category === "Physical" ? "火の体" : log.category === "Skill" ? "水の技" : "草の知"}」に関わる修練が行われました。
+あなたは現役のサッカー日本代表であり、ユーザーにとって「頼れるプロの先輩」です。
+ユーザー（後輩選手）が、自身の分身である3匹の霊獣（火の体、水の技、草の知）のうち、
+今回は特に「${log.category === "Physical" ? "火の体" : log.category === "Skill" ? "水の技" : "草の知"}」に関わる修練を行いました。
 
 【修練の記録】
 - 項目: ${log.category}
 - メニュー: ${log.menus.join(", ")}
 - 時間: ${log.hours.toFixed(1)}時間
-- 選手の自己評価（良）: ${log.goodPoints}
-- 選手の自己評価（疑）: ${log.improvements}
+- 後輩の自己評価（良）: ${log.goodPoints}
+- 後輩の自己評価（改善）: ${log.improvements}
 
 【指示】
-- 選手を導く「啓示」を授けてください。
-- 「そなた」「～である」「～がよい」といった、神としての威厳と慈しみのある口調で。
-- 100文字〜150文字程度で、選手の魂に響く言葉を選んでください。
-- 修練した霊獣の成長を讃え、次なる一歩を促してください。
+- 後輩選手を導く実践的で熱いアドバイスを送ってください。
+- 「～だね」「～してみよう」「お疲れ様！」といった、親身で頼れる先輩プロ選手の口調で話しかけてください。
+- 100文字〜150文字程度で簡潔に。
+- 今回の修練や自己評価を褒めつつ、プロの視点から次の一歩に繋がる具体的なアドバイスや励ましの言葉をかけてください。
 `;
 
         const result = await model.generateContent(prompt);

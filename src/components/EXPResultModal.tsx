@@ -6,7 +6,7 @@ import { useGameStore } from "@/store/useGameStore";
 import { getCharacterName, getEvolutionForm } from "@/lib/gameLogic";
 
 export const EXPResultModal = () => {
-  const { lastEXPResult, clearLastEXPResult } = useGameStore();
+  const { lastEXPResult, clearLastEXPResult, logs } = useGameStore();
 
   if (!lastEXPResult) return null;
 
@@ -91,6 +91,18 @@ export const EXPResultModal = () => {
               </p>
             </div>
           )}
+
+          <div className="bg-slate-900/60 p-3 rounded border border-slate-600 mt-2">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="text-xl">⚽</div>
+              <span className="text-sm font-bold text-yellow-400">日本代表プロからのアドバイス</span>
+            </div>
+            {logs.length > 0 && logs[0].aiAdvice ? (
+              <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">{logs[0].aiAdvice}</p>
+            ) : (
+              <p className="text-xs text-slate-400 animate-pulse">プロの視点で分析中...</p>
+            )}
+          </div>
 
           <p className="text-[10px] text-slate-400 text-center italic mt-2">
             「そなたの汗が、霊獣たちの糧となる。」

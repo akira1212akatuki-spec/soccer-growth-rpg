@@ -81,12 +81,12 @@ export const StatusPanel = () => {
           {renderBeast("Leaf", iqEXP, "知")}
         </div>
 
-        {/* 神のアドバイス */}
+        {/* プロからのアドバイス */}
         {overallAdvice && (
           <div className="bg-slate-800/80 border-l-4 border-yellow-500 p-3 rounded text-xs relative animate-fade-in">
-            <span className="text-yellow-400 font-bold block mb-1">神からの啓示</span>
+            <span className="text-yellow-400 font-bold block mb-1">日本代表プロからのアドバイス</span>
             <p className="text-slate-200 leading-relaxed italic">「{overallAdvice}」</p>
-            <div className="absolute top-2 right-2 text-xl opacity-10">✨</div>
+            <div className="absolute top-2 right-2 text-xl opacity-10">⚽</div>
           </div>
         )}
       </div>

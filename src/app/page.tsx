@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { StatusPanel } from "@/components/StatusPanel";
 import { Calendar } from "@/components/Calendar";
-import { AICoach } from "@/components/AICoach";
+
 import { LevelUpEffect } from "@/components/LevelUpEffect";
 import { FeedbackModal } from "@/components/FeedbackModal";
 import { InitialSetup } from "@/components/InitialSetup";
@@ -41,14 +41,9 @@ export default function Home() {
           <StatusPanel />
         </div>
 
-        {/* 下段: カレンダー (2カラム) */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
+        {/* 下段: カレンダー (3カラム全幅) */}
+        <div className="lg:col-span-3 flex flex-col gap-6">
           <Calendar />
-        </div>
-
-        {/* 下段右: 最新のAIアドバイス (1カラム) */}
-        <div className="lg:col-span-1 flex flex-col gap-6">
-          <AICoach />
         </div>
       </div>
 
