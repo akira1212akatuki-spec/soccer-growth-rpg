@@ -214,11 +214,21 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
       <div>
         <label className="block mb-1 text-yellow-400">時間</label>
         <div className="flex items-center gap-2">
-          <input type="number" min="0" max="24" className="w-20 bg-slate-800 border border-white p-2 text-center text-white"
-            value={inputHours} onChange={e => setInputHours(Number(e.target.value))} required />
+          <select className="w-20 bg-slate-800 border border-white p-2 text-center text-white"
+            value={inputHours} onChange={e => setInputHours(Number(e.target.value))} required>
+            <option value={1}>1</option>
+            <option value={2}>2</option>
+            <option value={3}>3</option>
+            <option value={4}>4</option>
+            <option value={5}>5</option>
+          </select>
           <span>時間</span>
-          <input type="number" min="0" max="59" step="5" className="w-20 bg-slate-800 border border-white p-2 text-center text-white"
-            value={inputMinutes} onChange={e => setInputMinutes(Number(e.target.value))} required />
+          <select className="w-20 bg-slate-800 border border-white p-2 text-center text-white"
+            value={inputMinutes} onChange={e => setInputMinutes(Number(e.target.value))} required>
+            {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map(m => (
+              <option key={m} value={Number(m)}>{m}</option>
+            ))}
+          </select>
           <span>分</span>
         </div>
       </div>

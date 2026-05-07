@@ -115,7 +115,7 @@ export const FeedbackModal = () => {
           </div>
 
           <div>
-            <label className="block mb-1 text-yellow-400 font-bold">振り返りと次なる誓い</label>
+            <label className="block mb-1 text-yellow-400 font-bold">今月の振り返り</label>
             <textarea 
               className="w-full bg-slate-900 border border-slate-600 p-2 h-24 text-white focus:border-yellow-400 outline-none"
               placeholder="この期間の成果を神に伝え、次なる目標を記せ..."
@@ -124,7 +124,7 @@ export const FeedbackModal = () => {
               required 
             />
             <div className="mt-2">
-              <label className="block mb-1 text-[10px] text-slate-400 font-bold">簡潔な「次なる目標」</label>
+              <label className="block mb-1 text-[10px] text-slate-400 font-bold">次なる一か月の誓い</label>
               <input 
                 type="text"
                 className="w-full bg-slate-900 border border-slate-600 p-2 text-white text-xs"
