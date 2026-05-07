@@ -18,7 +18,7 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
   const [selectedMenus, setSelectedMenus] = useState<string[]>([]);
   const [newMenu, setNewMenu] = useState("");
   
-  const [inputHours, setInputHours] = useState(1);
+  const [inputHours, setInputHours] = useState(0);
   const [inputMinutes, setInputMinutes] = useState(30);
   
   const [goodPoints, setGoodPoints] = useState("");
@@ -216,6 +216,7 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
         <div className="flex items-center gap-2">
           <select className="w-20 bg-slate-800 border border-white p-2 text-center text-white"
             value={inputHours} onChange={e => setInputHours(Number(e.target.value))} required>
+            <option value={0}>0</option>
             <option value={1}>1</option>
             <option value={2}>2</option>
             <option value={3}>3</option>
