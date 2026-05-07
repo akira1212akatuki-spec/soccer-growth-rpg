@@ -27,6 +27,7 @@ export const EXPResultModal = () => {
   const renderRow = (type: "Fire" | "Water" | "Leaf", label: string, gained: number, prevLv: number, newLv: number) => {
     const levelUp = newLv > prevLv;
     const isEvolved = evolutions.includes(type);
+    const prevName = getCharacterName(type, prevLv);
     const currentName = getCharacterName(type, newLv);
     const imagePath = `/assets/char/${type.toLowerCase()}/form_${getEvolutionForm(newLv)}.png`;
 
@@ -58,7 +59,9 @@ export const EXPResultModal = () => {
           </div>
 
           <div className="flex items-center gap-1">
-            <span className="text-[10px] text-slate-200 font-bold">{currentName}</span>
+            <span className="text-[10px] text-slate-200 font-bold">
+              {isEvolved ? `${prevName} ⇒ ${currentName}` : currentName}
+            </span>
             {isEvolved && (
               <span className="text-[10px] text-yellow-400 font-black animate-bounce ml-auto">
                 ★進化！SHINKA★
