@@ -6,7 +6,7 @@ import { useGameStore } from "@/store/useGameStore";
 import { getCharacterName, getEvolutionForm } from "@/lib/gameLogic";
 
 export const EXPResultModal = () => {
-  const { lastEXPResult, clearLastEXPResult, logs } = useGameStore();
+  const { lastEXPResult, clearLastEXPResult, logs, practiceStreak, streakMultiplier } = useGameStore();
 
   if (!lastEXPResult) return null;
 
@@ -23,6 +23,9 @@ export const EXPResultModal = () => {
     isLevelUp,
     evolutions,
   } = lastEXPResult;
+
+  // 最新のログのアドバイスを直接参照（Zustandの状態変化でリアルタイム更新）
+  const latestAdvice = logs.length > 0 ? logs[0].aiAdvice : undefined;
 
   const renderRow = (type: "Fire" | "Water" | "Leaf", label: string, gained: number, prevLv: number, newLv: number) => {
     const levelUp = newLv > prevLv;
@@ -81,6 +84,29 @@ export const EXPResultModal = () => {
             <span className="text-xs text-yellow-500 font-bold tracking-widest uppercase">Practice Result</span>
           </div>
 
+          {/* ストリーク表示 */}
+          {practiceStreak > 1 && (
+            <div className="bg-orange-900/40 border border-orange-500/60 rounded p-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🔥</span>
+                <div>
+                  <div className="text-orange-400 font-black text-sm">{practiceStreak}日連続修練！</div>
+                  <div className="text-orange-300 text-[10px]">複利ボーナス発動中</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-yellow-400 font-black text-lg">×{streakMultiplier.toFixed(3)}</div>
+                <div className="text-slate-400 text-[9px]">EXP倍率</div>
+              </div>
+            </div>
+          )}
+          {practiceStreak === 1 && (
+            <div className="bg-slate-800/60 border border-slate-600 rounded p-2 flex items-center gap-2">
+              <span className="text-base">⚡</span>
+              <div className="text-slate-300 text-[10px]">連続修練でEXPが複利×1.05倍ずつ増加！</div>
+            </div>
+          )}
+
           <div className="flex flex-col gap-4 py-2">
             {renderRow("Fire", "火の体", gainedPhysical, prevPhysicalLv, newPhysicalLv)}
             {renderRow("Water", "水の技", gainedSkill, prevSkillLv, newSkillLv)}
@@ -95,15 +121,19 @@ export const EXPResultModal = () => {
             </div>
           )}
 
+          {/* AIコーチアドバイス（Zustand state直参照でリアルタイム更新） */}
           <div className="bg-slate-900/60 p-3 rounded border border-slate-600 mt-2">
             <div className="flex items-center gap-2 mb-2">
               <div className="text-xl">⚽</div>
               <span className="text-sm font-bold text-yellow-400">日本代表プロからのアドバイス</span>
             </div>
-            {logs.length > 0 && logs[0].aiAdvice ? (
-              <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">{logs[0].aiAdvice}</p>
+            {latestAdvice ? (
+              <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">{latestAdvice}</p>
             ) : (
-              <p className="text-xs text-slate-400 animate-pulse">プロの視点で分析中...</p>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                <p className="text-xs text-slate-400">プロの視点で分析中...</p>
+              </div>
             )}
           </div>
 

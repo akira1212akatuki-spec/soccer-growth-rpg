@@ -49,6 +49,10 @@ type GameState = {
   overallAdvice: string | null;
   lastEXPResult: EXPResult | null;
   menuHistory: Record<"Skill" | "Physical" | "IQ", string[]>;
+  // 連続練習ストリーク（複利EXP用）
+  practiceStreak: number;
+  lastPracticeDate: string | null;
+  streakMultiplier: number; // 現在の複利倍率（1.05^streak）
   setInitialSetup: (name: string, yearly: string, yearlyDead: string, monthly: string, monthlyDead: string) => void;
   updateGoals: (yearly: string, yearlyDead: string, monthly: string, monthlyDead: string) => void;
   addEXP: (category: "Skill" | "Physical" | "IQ", amount: number) => void;
@@ -60,11 +64,13 @@ type GameState = {
   setLastFeedbackDate: (date: string) => void;
   setOverallAdvice: (advice: string) => void;
   addMenuHistory: (category: "Skill" | "Physical" | "IQ", menus: string[]) => void;
+  /** 練習記録時にstreakを更新してEXPを加算する統合アクション */
+  recordPractice: (log: PracticeLog, category: "Skill" | "Physical" | "IQ", baseGainedExp: number) => { finalExp: number; streak: number; multiplier: number };
 };
 
 export const useGameStore = create<GameState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       playerName: null,
       yearlyGoal: null,
       yearlyDeadline: null,
@@ -78,6 +84,9 @@ export const useGameStore = create<GameState>()(
       lastFeedbackDate: null,
       overallAdvice: null,
       lastEXPResult: null,
+      practiceStreak: 0,
+      lastPracticeDate: null,
+      streakMultiplier: 1.0,
       menuHistory: {
         Skill: ["フリードリブル", "各種リフティング", "コーン・ドリブル", "ターン練習", "シュート練習", "パス練習"],
         Physical: ["走り込み", "ダッシュ", "筋トレ", "体幹トレーニング"],
@@ -174,6 +183,56 @@ export const useGameStore = create<GameState>()(
           }
         };
       }),
+
+      // ストリーク更新 + EXP加算を一括で行う統合アクション
+      recordPractice: (log, category, baseGainedExp) => {
+        const state = get();
+        const today = log.date; // 練習日付 (YYYY-MM-DD)
+
+        // ストリーク計算
+        let newStreak = state.practiceStreak;
+        const lastDate = state.lastPracticeDate;
+
+        if (!lastDate) {
+          // 初回練習
+          newStreak = 1;
+        } else {
+          const last = new Date(lastDate);
+          const curr = new Date(today);
+          // 日付差（時刻を無視するためUTC日付で比較）
+          const diffDays = Math.round((curr.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays === 0) {
+            // 同じ日に複数回練習 → ストリークはそのまま
+            newStreak = Math.max(1, state.practiceStreak);
+          } else if (diffDays === 1) {
+            // 翌日練習 → ストリーク継続
+            newStreak = state.practiceStreak + 1;
+          } else {
+            // 途切れた → リセット
+            newStreak = 1;
+          }
+        }
+
+        // 複利倍率: 1.05^(streak-1)、最大5.0倍
+        const newMultiplier = Math.min(5.0, Math.pow(1.05, newStreak - 1));
+        // 複利適用後のEXP（小数点以下切り捨て）
+        const finalExp = Math.floor(baseGainedExp * newMultiplier);
+
+        // stateを同期的に更新（addEXPロジックを内包）
+        const addEXPFn = state.addEXP;
+
+        set((s) => ({
+          logs: [log, ...s.logs],
+          practiceStreak: newStreak,
+          lastPracticeDate: today,
+          streakMultiplier: newMultiplier,
+        }));
+
+        // EXP加算（addEXPが内部でlastEXPResultも更新する）
+        addEXPFn(category, finalExp);
+
+        return { finalExp, streak: newStreak, multiplier: newMultiplier };
+      },
     }),
     {
       name: 'soccer-rpg-storage',

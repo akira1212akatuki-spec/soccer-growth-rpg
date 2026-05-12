@@ -10,7 +10,7 @@ interface PracticeFormProps {
 }
 
 export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
-  const { addLog, addEXP, menuHistory, addMenuHistory, setOverallAdvice, yearlyGoal, monthlyGoal, schedules } = useGameStore();
+  const { recordPractice, menuHistory, addMenuHistory, setOverallAdvice, yearlyGoal, monthlyGoal, schedules } = useGameStore();
   const [loading, setLoading] = useState(false);
   
   const [date, setDate] = useState(initialDate || new Date().toISOString().split("T")[0]);
@@ -69,15 +69,15 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
       const matchingSchedule = schedules.find(s => s.date === date && s.category === category);
       const isReserved = !!matchingSchedule;
 
-      // EXP計算
-      let multiplier = calculateEXPMultiplier(totalHours, category);
+      // EXP計算（予約ボーナス込み、複利前のベースEXP）
+      let multiplier_calc = calculateEXPMultiplier(totalHours, category);
       if (isReserved) {
-        multiplier *= 1.2;
+        multiplier_calc *= 1.2;
       }
       const baseExp = 100;
-      const gainedExp = Math.floor(baseExp * multiplier);
+      // ※ streakによる複利はrecordPractice内で自動適用される
 
-      // ログ保存
+      // ログ構築
       const newLog: PracticeLog = {
         id: crypto.randomUUID(),
         date,
@@ -88,8 +88,9 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
         improvements
       };
 
-      addLog(newLog);
-      addEXP(category, gainedExp);
+      // recordPractice でストリーク更新 + EXP加算を一括実行
+      const { finalExp, streak, multiplier: streakMult } = recordPractice(newLog, category, Math.floor(baseExp * multiplier_calc));
+      console.log(`EXP獲得: ${finalExp} (ストリーク${streak}日: ×${streakMult.toFixed(3)})`);
 
       // タイムアウト設定 (20秒に延長)
       const controller = new AbortController();
