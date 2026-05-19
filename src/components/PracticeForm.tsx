@@ -10,7 +10,7 @@ interface PracticeFormProps {
 }
 
 export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
-  const { recordPractice, menuHistory, addMenuHistory, setOverallAdvice, yearlyGoal, monthlyGoal, schedules } = useGameStore();
+  const { recordPractice, menuHistory, addMenuHistory, setOverallAdvice, yearlyGoal, monthlyGoal, schedules, addMonsterProgress } = useGameStore();
   const [loading, setLoading] = useState(false);
   
   const [date, setDate] = useState(initialDate || new Date().toISOString().split("T")[0]);
@@ -91,6 +91,10 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
       // recordPractice でストリーク更新 + EXP加算を一括実行
       const { finalExp, streak, multiplier: streakMult } = recordPractice(newLog, category, Math.floor(baseExp * multiplier_calc));
       console.log(`EXP獲得: ${finalExp} (ストリーク${streak}日: ×${streakMult.toFixed(3)})`);
+
+      // 心の魔物ゲージを加算（記録した分数をそのまま渡す）
+      const totalMinutes = inputHours * 60 + inputMinutes;
+      addMonsterProgress(category, totalMinutes);
 
       // タイムアウト設定 (20秒に延長)
       const controller = new AbortController();

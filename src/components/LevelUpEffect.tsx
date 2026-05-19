@@ -57,8 +57,8 @@ export const LevelUpEffect = () => {
   if (!showLevelUp) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none bg-black/40">
-      <div className="text-center animate-bounce">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/40">
+      <div className="text-center animate-bounce pointer-events-none">
         <h1 className="text-6xl text-yellow-400 font-black" style={{ textShadow: "4px 4px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000" }}>
           LEVEL UP!
         </h1>

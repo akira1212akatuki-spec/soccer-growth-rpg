@@ -4,9 +4,14 @@ import React, { useEffect, useState } from "react";
 import { JRPGWindow } from "./ui/JRPGWindow";
 import { useGameStore } from "@/store/useGameStore";
 import { getLevelProgress, getCharacterName, getEvolutionForm } from "@/lib/gameLogic";
+import { MONSTERS } from "@/lib/monsters";
 
 export const StatusPanel = () => {
-  const { playerName, skillEXP, physicalEXP, iqEXP, yearlyGoal, yearlyDeadline, monthlyGoal, monthlyDeadline, overallAdvice } = useGameStore();
+  const {
+    playerName, skillEXP, physicalEXP, iqEXP,
+    yearlyGoal, yearlyDeadline, monthlyGoal, monthlyDeadline,
+    overallAdvice, todayMonster,
+  } = useGameStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -74,6 +79,9 @@ export const StatusPanel = () => {
           </div>
         </div>
 
+        {/* 心の魔物セクション */}
+        <MonsterSection todayMonster={todayMonster} />
+
         {/* 3匹の霊獣 */}
         <div className="grid grid-cols-3 gap-2">
           {renderBeast("Fire", physicalEXP, "体力")}
@@ -91,5 +99,95 @@ export const StatusPanel = () => {
         )}
       </div>
     </JRPGWindow>
+  );
+};
+
+// 魔物セクションを別コンポーネントに分離（useState を使用するため）
+const MonsterSection = ({ todayMonster }: { todayMonster: import("@/store/useGameStore").TodayMonsterState | null }) => {
+  const [imgError, setImgError] = useState(false);
+
+  if (!todayMonster) return null;
+  const monster = MONSTERS.find((m) => m.id === todayMonster.monsterId);
+  if (!monster) return null;
+
+  const progress = Math.min(todayMonster.accumulatedMinutes, monster.requiredMinutes);
+  const percentage = (progress / monster.requiredMinutes) * 100;
+  const remaining = Math.max(0, monster.requiredMinutes - todayMonster.accumulatedMinutes);
+
+  const categoryLabel =
+    monster.category === "Physical" ? "Physical（フィジカル）" :
+    monster.category === "IQ" ? "IQ（サッカーIQ）" : "Skill（ボールタッチ）";
+
+  const gaugeColor =
+    monster.category === "Physical" ? "bg-blue-500" :
+    monster.category === "IQ" ? "bg-purple-500" : "bg-red-500";
+
+  if (todayMonster.defeated) {
+    return (
+      <div className="bg-yellow-900/20 border border-yellow-500 rounded p-3 flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          {!imgError ? (
+            <img
+              src={monster.imagePath}
+              alt={monster.name}
+              className="w-12 h-12 object-contain opacity-40 grayscale"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <span className="text-3xl opacity-40">👹</span>
+          )}
+          <div className="flex-1">
+            <p className="text-yellow-400 font-black text-sm">魔物撃退！頑張ったな！</p>
+            <p className={`text-[10px] ${monster.color} font-bold`}>{monster.name} を追い払った</p>
+          </div>
+          <span className="text-2xl">🏆</span>
+        </div>
+        {todayMonster.defeatComment && (
+          <div className="bg-slate-900/60 border border-slate-600 rounded p-2 mt-1">
+            <span className="text-[10px] text-yellow-400 font-bold block mb-1">⚽ プロからのコメント</span>
+            <p className="text-[10px] text-slate-200 italic leading-relaxed">「{todayMonster.defeatComment}」</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${monster.bgColor} border ${monster.borderColor} rounded p-3 flex flex-col gap-2`}>
+      <div className="flex items-center gap-3">
+        {!imgError ? (
+          <img
+            src={monster.imagePath}
+            alt={monster.name}
+            className="w-12 h-12 object-contain"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <span className="text-3xl">👹</span>
+        )}
+        <div className="flex-1">
+          <p className={`font-black text-sm ${monster.color}`}>{monster.name}</p>
+          <p className="text-[10px] text-slate-300">
+            撃退条件：<span className="font-bold text-white">{categoryLabel}</span> 累計 {monster.requiredMinutes}分超
+          </p>
+        </div>
+      </div>
+      {/* ゲージ */}
+      <div>
+        <div className="flex justify-between text-[10px] mb-1">
+          <span className="text-slate-300">修練ゲージ</span>
+          <span className="text-white font-bold">
+            {todayMonster.accumulatedMinutes}分 / {monster.requiredMinutes}分
+            {remaining > 0 && <span className="text-slate-400">（あと {remaining}分）</span>}
+          </span>
+        </div>
+        <div className="w-full bg-slate-900 border border-slate-600 h-3 rounded overflow-hidden">
+          <div
+            className={`h-full transition-all duration-700 ${gaugeColor}`}
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+      </div>
+    </div>
   );
 };

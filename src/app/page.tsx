@@ -3,20 +3,32 @@
 import React, { useEffect, useState } from "react";
 import { StatusPanel } from "@/components/StatusPanel";
 import { Calendar } from "@/components/Calendar";
-
 import { LevelUpEffect } from "@/components/LevelUpEffect";
 import { FeedbackModal } from "@/components/FeedbackModal";
 import { InitialSetup } from "@/components/InitialSetup";
 import { EXPResultModal } from "@/components/EXPResultModal";
+import { MonsterAppearModal } from "@/components/MonsterAppearModal";
+import { MonsterDefeatModal } from "@/components/MonsterDefeatModal";
 import { useGameStore } from "@/store/useGameStore";
+import { MonsterDefinition } from "@/lib/monsters";
 
 export default function Home() {
-  const { playerName, yearlyGoal } = useGameStore();
+  const { playerName, yearlyGoal, initDailyMonster } = useGameStore();
   const [mounted, setMounted] = useState(false);
+  const [appearMonster, setAppearMonster] = useState<MonsterDefinition | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted || !playerName) return;
+    // 日替わりで魔物を初期化。新しい魔物が返ってきたらポップアップ表示
+    const newMonster = initDailyMonster();
+    if (newMonster) {
+      setAppearMonster(newMonster);
+    }
+  }, [mounted, playerName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!mounted) return null;
 
@@ -50,6 +62,15 @@ export default function Home() {
       <LevelUpEffect />
       <FeedbackModal />
       <EXPResultModal />
+
+      {/* 心の魔物モーダル */}
+      {appearMonster && (
+        <MonsterAppearModal
+          monster={appearMonster}
+          onClose={() => setAppearMonster(null)}
+        />
+      )}
+      <MonsterDefeatModal />
     </main>
   );
 }

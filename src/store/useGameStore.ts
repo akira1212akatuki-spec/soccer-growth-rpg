@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { calculateLevelFromEXP, getEvolutionForm } from '@/lib/gameLogic';
+import { MonsterDefinition, MONSTERS, selectTodayMonster } from '@/lib/monsters';
 
 export type PracticeLog = {
   id: string;
@@ -34,6 +35,15 @@ export type EXPResult = {
   evolutions: ("Fire" | "Water" | "Leaf")[];
 };
 
+export type TodayMonsterState = {
+  monsterId: string;
+  date: string; // YYYY-MM-DD
+  accumulatedMinutes: number; // 当日の対象カテゴリ累計（分）
+  defeated: boolean;
+  /** 撃退後のAIコメント */
+  defeatComment: string | null;
+};
+
 type GameState = {
   playerName: string | null;
   yearlyGoal: string | null;
@@ -53,6 +63,12 @@ type GameState = {
   practiceStreak: number;
   lastPracticeDate: string | null;
   streakMultiplier: number; // 現在の複利倍率（1.05^streak）
+  // ─── 心の魔物システム ───
+  todayMonster: TodayMonsterState | null;
+  /** 翌日EXP2倍ボーナスが有効かどうか */
+  monsterBonusActive: boolean;
+  /** 撃退成功モーダルを表示するトリガー */
+  showMonsterDefeatModal: boolean;
   setInitialSetup: (name: string, yearly: string, yearlyDead: string, monthly: string, monthlyDead: string) => void;
   updateGoals: (yearly: string, yearlyDead: string, monthly: string, monthlyDead: string) => void;
   addEXP: (category: "Skill" | "Physical" | "IQ", amount: number) => void;
@@ -66,6 +82,14 @@ type GameState = {
   addMenuHistory: (category: "Skill" | "Physical" | "IQ", menus: string[]) => void;
   /** 練習記録時にstreakを更新してEXPを加算する統合アクション */
   recordPractice: (log: PracticeLog, category: "Skill" | "Physical" | "IQ", baseGainedExp: number) => { finalExp: number; streak: number; multiplier: number };
+  /** 日替わりで魔物を初期化する（ログイン時に呼ぶ） */
+  initDailyMonster: () => MonsterDefinition | null;
+  /** 修練後に対象カテゴリの累計分を加算し、撃退判定を行う */
+  addMonsterProgress: (category: "Skill" | "Physical" | "IQ", minutes: number) => void;
+  /** 撃退モーダルを閉じる */
+  closeMonsterDefeatModal: () => void;
+  /** 魔物撃退後のAIコメントをセットする */
+  setMonsterDefeatComment: (comment: string) => void;
 };
 
 export const useGameStore = create<GameState>()(
@@ -87,6 +111,10 @@ export const useGameStore = create<GameState>()(
       practiceStreak: 0,
       lastPracticeDate: null,
       streakMultiplier: 1.0,
+      // 心の魔物
+      todayMonster: null,
+      monsterBonusActive: false,
+      showMonsterDefeatModal: false,
       menuHistory: {
         Skill: ["フリードリブル", "各種リフティング", "コーン・ドリブル", "ターン練習", "シュート練習", "パス練習"],
         Physical: ["走り込み", "ダッシュ", "筋トレ", "体幹トレーニング"],
@@ -215,8 +243,10 @@ export const useGameStore = create<GameState>()(
 
         // 複利倍率: 1.05^(streak-1)、最大5.0倍
         const newMultiplier = Math.min(5.0, Math.pow(1.05, newStreak - 1));
-        // 複利適用後のEXP（小数点以下切り捨て）
-        const finalExp = Math.floor(baseGainedExp * newMultiplier);
+        // 翌日ボーナス（魔物撃退済み）
+        const bonusMultiplier = state.monsterBonusActive ? 2.0 : 1.0;
+        // 複利×ボーナス適用後のEXP
+        const finalExp = Math.floor(baseGainedExp * newMultiplier * bonusMultiplier);
 
         // stateを同期的に更新（addEXPロジックを内包）
         const addEXPFn = state.addEXP;
@@ -226,6 +256,8 @@ export const useGameStore = create<GameState>()(
           practiceStreak: newStreak,
           lastPracticeDate: today,
           streakMultiplier: newMultiplier,
+          // ボーナスは1回使ったらリセット
+          monsterBonusActive: false,
         }));
 
         // EXP加算（addEXPが内部でlastEXPResultも更新する）
@@ -233,11 +265,75 @@ export const useGameStore = create<GameState>()(
 
         return { finalExp, streak: newStreak, multiplier: newMultiplier };
       },
+
+      // ───── 心の魔物システム ─────
+      initDailyMonster: () => {
+        const state = get();
+        const today = new Date().toISOString().split('T')[0];
+
+        // 同じ日はすでに魔物が存在する → 何もしない
+        if (state.todayMonster && state.todayMonster.date === today) {
+          return null;
+        }
+
+        // 今日のスケジュールからカテゴリを取得
+        const todayCategories = state.schedules
+          .filter(s => s.date === today)
+          .map(s => s.category);
+
+        const monster = selectTodayMonster(todayCategories);
+
+        set({
+          todayMonster: {
+            monsterId: monster.id,
+            date: today,
+            accumulatedMinutes: 0,
+            defeated: false,
+            defeatComment: null,
+          },
+          // 新しい日になったらボーナスをリセット（撃退日の翌日から適用済み想定）
+          // ※ bonusActiveは前日撃退→本日適用→本日練習時にリセット の流れ
+        });
+
+        return monster;
+      },
+
+      addMonsterProgress: (category, minutes) => {
+        const state = get();
+        const { todayMonster } = state;
+        if (!todayMonster || todayMonster.defeated) return;
+
+        // import済みのMONSTERSからカテゴリ確認
+        const monster = MONSTERS.find((m) => m.id === todayMonster.monsterId);
+        if (!monster || monster.category !== category) return;
+
+        const newMinutes = todayMonster.accumulatedMinutes + minutes;
+        const isDefeated = newMinutes > monster.requiredMinutes;
+
+        set({
+          todayMonster: {
+            ...todayMonster,
+            accumulatedMinutes: newMinutes,
+            defeated: isDefeated,
+          },
+          ...(isDefeated ? {
+            showMonsterDefeatModal: true,
+            // 翌日のEXPを2倍にするフラグをON
+            monsterBonusActive: true,
+          } : {}),
+        });
+      },
+
+      closeMonsterDefeatModal: () => set({ showMonsterDefeatModal: false }),
+
+      setMonsterDefeatComment: (comment) => set((s) => ({
+        todayMonster: s.todayMonster ? { ...s.todayMonster, defeatComment: comment } : null,
+      })),
     }),
     {
       name: 'soccer-rpg-storage',
       partialize: (state) => {
-        const { lastEXPResult, ...rest } = state;
+        const { lastEXPResult, showMonsterDefeatModal, ...rest } = state;
         return rest;
       },
     }
