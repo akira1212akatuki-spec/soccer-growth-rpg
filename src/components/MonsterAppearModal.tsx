@@ -33,19 +33,19 @@ export const MonsterAppearModal = ({ monster, onClose }: MonsterAppearModalProps
         </div>
 
         {/* 魔物画像 */}
-        <div className="flex flex-col items-center py-4 gap-2">
+        <div className="flex flex-col items-center py-4 gap-2 px-4">
           {!imgError ? (
             <img
               src={monster.imagePath}
               alt={monster.name}
-              className="w-36 h-36 object-contain drop-shadow-[0_0_20px_rgba(255,100,100,0.7)]"
+              className="w-full max-h-64 object-contain drop-shadow-[0_0_20px_rgba(255,100,100,0.7)]"
               onError={() => setImgError(true)}
             />
           ) : (
             <div
-              className={`w-36 h-36 flex items-center justify-center rounded-full ${monster.bgColor} border-2 ${monster.borderColor}`}
+              className={`w-full h-48 flex items-center justify-center rounded-xl ${monster.bgColor} border-2 ${monster.borderColor}`}
             >
-              <span className="text-5xl">👹</span>
+              <span className="text-8xl">👹</span>
             </div>
           )}
 

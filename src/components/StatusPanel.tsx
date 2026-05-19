@@ -124,26 +124,29 @@ const MonsterSection = ({ todayMonster }: { todayMonster: import("@/store/useGam
 
   if (todayMonster.defeated) {
     return (
-      <div className="bg-yellow-900/20 border border-yellow-500 rounded p-3 flex flex-col gap-2">
-        <div className="flex items-center gap-3">
+      <div className="bg-yellow-900/20 border border-yellow-500 rounded p-3 flex flex-col gap-3">
+        {/* 撃退済み画像（横幅フル） */}
+        <div className="w-full flex justify-center">
           {!imgError ? (
             <img
               src={monster.imagePath}
               alt={monster.name}
-              className="w-12 h-12 object-contain opacity-40 grayscale"
+              className="w-full max-h-48 object-contain opacity-50 grayscale"
               onError={() => setImgError(true)}
             />
           ) : (
-            <span className="text-3xl opacity-40">👹</span>
+            <span className="text-6xl opacity-40">👹</span>
           )}
-          <div className="flex-1">
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
             <p className="text-yellow-400 font-black text-sm">魔物撃退！頑張ったな！</p>
             <p className={`text-[10px] ${monster.color} font-bold`}>{monster.name} を追い払った</p>
           </div>
-          <span className="text-2xl">🏆</span>
+          <span className="text-3xl">🏆</span>
         </div>
         {todayMonster.defeatComment && (
-          <div className="bg-slate-900/60 border border-slate-600 rounded p-2 mt-1">
+          <div className="bg-slate-900/60 border border-slate-600 rounded p-2">
             <span className="text-[10px] text-yellow-400 font-bold block mb-1">⚽ プロからのコメント</span>
             <p className="text-[10px] text-slate-200 italic leading-relaxed">「{todayMonster.defeatComment}」</p>
           </div>
@@ -153,24 +156,26 @@ const MonsterSection = ({ todayMonster }: { todayMonster: import("@/store/useGam
   }
 
   return (
-    <div className={`${monster.bgColor} border ${monster.borderColor} rounded p-3 flex flex-col gap-2`}>
-      <div className="flex items-center gap-3">
+    <div className={`${monster.bgColor} border ${monster.borderColor} rounded p-3 flex flex-col gap-3`}>
+      {/* 魔物画像（横幅フル） */}
+      <div className="w-full flex justify-center">
         {!imgError ? (
           <img
             src={monster.imagePath}
             alt={monster.name}
-            className="w-12 h-12 object-contain"
+            className="w-full max-h-48 object-contain"
             onError={() => setImgError(true)}
           />
         ) : (
-          <span className="text-3xl">👹</span>
+          <span className="text-6xl">👹</span>
         )}
-        <div className="flex-1">
-          <p className={`font-black text-sm ${monster.color}`}>{monster.name}</p>
-          <p className="text-[10px] text-slate-300">
-            撃退条件：<span className="font-bold text-white">{categoryLabel}</span> 累計 {monster.requiredMinutes}分超
-          </p>
-        </div>
+      </div>
+      {/* 魔物名・条件 */}
+      <div>
+        <p className={`font-black text-base text-center ${monster.color}`}>{monster.name}</p>
+        <p className="text-[11px] text-slate-300 text-center mt-0.5">
+          撃退条件：<span className="font-bold text-white">{categoryLabel}</span> 累計 {monster.requiredMinutes}分超
+        </p>
       </div>
       {/* ゲージ */}
       <div>
@@ -178,7 +183,7 @@ const MonsterSection = ({ todayMonster }: { todayMonster: import("@/store/useGam
           <span className="text-slate-300">修練ゲージ</span>
           <span className="text-white font-bold">
             {todayMonster.accumulatedMinutes}分 / {monster.requiredMinutes}分
-            {remaining > 0 && <span className="text-slate-400">（あと {remaining}分）</span>}
+            {remaining > 0 && <span className="text-slate-400">(あと {remaining}分)</span>}
           </span>
         </div>
         <div className="w-full bg-slate-900 border border-slate-600 h-3 rounded overflow-hidden">
