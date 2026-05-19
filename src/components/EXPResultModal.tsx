@@ -77,8 +77,8 @@ export const EXPResultModal = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in pointer-events-auto">
-      <JRPGWindow title="★ 霊獣たちの成長 ★" className="w-full max-w-sm border-2 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.3)]">
+    <div className="fixed inset-0 z-[60] flex items-start md:items-center justify-center bg-black/85 backdrop-blur-md p-4 pt-10 md:pt-4 animate-fade-in pointer-events-auto overflow-y-auto">
+      <JRPGWindow title="★ 霊獣たちの成長 ★" className="w-full max-w-sm border-2 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.3)] my-auto max-h-none md:max-h-none">
         <div className="flex flex-col gap-4">
           <div className="text-center py-2 border-b border-slate-700">
             <span className="text-xs text-yellow-500 font-bold tracking-widest uppercase">Practice Result</span>

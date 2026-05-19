@@ -308,7 +308,7 @@ export const useGameStore = create<GameState>()(
         if (!monster || monster.category !== category) return;
 
         const newMinutes = todayMonster.accumulatedMinutes + minutes;
-        const isDefeated = newMinutes > monster.requiredMinutes;
+        const isDefeated = newMinutes >= monster.requiredMinutes;
 
         set({
           todayMonster: {
