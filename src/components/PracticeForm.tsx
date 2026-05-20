@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useGameStore, PracticeLog } from "@/store/useGameStore";
-import { calculateEXPMultiplier } from "@/lib/gameLogic";
+import { calculateEXPMultiplier, getLocalDateString } from "@/lib/gameLogic";
 
 interface PracticeFormProps {
   initialDate?: string;
@@ -13,7 +13,7 @@ export const PracticeForm = ({ initialDate, onClose }: PracticeFormProps) => {
   const { recordPractice, menuHistory, addMenuHistory, setOverallAdvice, yearlyGoal, monthlyGoal, schedules, addMonsterProgress } = useGameStore();
   const [loading, setLoading] = useState(false);
   
-  const [date, setDate] = useState(initialDate || new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(initialDate || getLocalDateString());
   const [category, setCategory] = useState<"Skill" | "Physical" | "IQ">("Skill");
   const [selectedMenus, setSelectedMenus] = useState<string[]>([]);
   const [newMenu, setNewMenu] = useState("");

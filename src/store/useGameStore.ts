@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { calculateLevelFromEXP, getEvolutionForm } from '@/lib/gameLogic';
+import { calculateLevelFromEXP, getEvolutionForm, getLocalDateString } from '@/lib/gameLogic';
 import { MonsterDefinition, MONSTERS, selectTodayMonster } from '@/lib/monsters';
 
 export type PracticeLog = {
@@ -44,6 +44,11 @@ export type TodayMonsterState = {
   defeatComment: string | null;
 };
 
+export type YesterdayMonsterState = {
+  monsterName: string;
+  defeated: boolean;
+};
+
 type GameState = {
   playerName: string | null;
   yearlyGoal: string | null;
@@ -65,6 +70,7 @@ type GameState = {
   streakMultiplier: number; // 現在の複利倍率（1.05^streak）
   // ─── 心の魔物システム ───
   todayMonster: TodayMonsterState | null;
+  yesterdayMonster: YesterdayMonsterState | null;
   /** 翌日EXP2倍ボーナスが有効かどうか */
   monsterBonusActive: boolean;
   /** 撃退成功モーダルを表示するトリガー */
@@ -113,6 +119,7 @@ export const useGameStore = create<GameState>()(
       streakMultiplier: 1.0,
       // 心の魔物
       todayMonster: null,
+      yesterdayMonster: null,
       monsterBonusActive: false,
       showMonsterDefeatModal: false,
       menuHistory: {
@@ -269,11 +276,23 @@ export const useGameStore = create<GameState>()(
       // ───── 心の魔物システム ─────
       initDailyMonster: () => {
         const state = get();
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
 
         // 同じ日はすでに魔物が存在する → 何もしない
         if (state.todayMonster && state.todayMonster.date === today) {
           return null;
+        }
+
+        // 日付が変わる前の魔物情報を yesterdayMonster に退避する
+        let yesterdayMonster: YesterdayMonsterState | null = state.yesterdayMonster || null;
+        if (state.todayMonster) {
+          const prevMonster = MONSTERS.find((m) => m.id === state.todayMonster?.monsterId);
+          if (prevMonster) {
+            yesterdayMonster = {
+              monsterName: prevMonster.name,
+              defeated: state.todayMonster.defeated,
+            };
+          }
         }
 
         // 今日のスケジュールからカテゴリを取得
@@ -291,8 +310,7 @@ export const useGameStore = create<GameState>()(
             defeated: false,
             defeatComment: null,
           },
-          // 新しい日になったらボーナスをリセット（撃退日の翌日から適用済み想定）
-          // ※ bonusActiveは前日撃退→本日適用→本日練習時にリセット の流れ
+          yesterdayMonster,
         });
 
         return monster;
