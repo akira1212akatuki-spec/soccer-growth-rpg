@@ -30,7 +30,7 @@ export const StatusPanel = () => {
     const barColor = type === "Fire" ? "bg-red-500" : type === "Water" ? "bg-blue-500" : "bg-green-500";
 
     return (
-      <div className="flex flex-col items-center bg-slate-900/40 p-2 border border-slate-700 rounded relative">
+      <div className="flex flex-col items-center bg-slate-900/40 p-2 border border-slate-700 rounded relative overflow-hidden group cursor-pointer w-full">
         <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center relative overflow-hidden mb-1">
           <img 
             src={imagePath} 
@@ -41,7 +41,13 @@ export const StatusPanel = () => {
             }}
           />
         </div>
-        <div className={`text-[10px] font-bold ${colorClass}`}>{charName}</div>
+        <div className="w-full overflow-hidden text-center mt-1 select-none">
+          <div className="rpg-beast-name-container">
+            <span className={`rpg-beast-name text-[10px] font-bold ${colorClass} whitespace-nowrap text-ellipsis overflow-hidden`}>
+              {charName}
+            </span>
+          </div>
+        </div>
         <div className="w-full mt-1">
           <div className="flex justify-between text-[10px] mb-0.5">
             <span className="font-bold text-white">{label} Lv.{level}</span>
@@ -102,6 +108,35 @@ export const StatusPanel = () => {
           </div>
         )}
       </div>
+      <style>{`
+        @keyframes rpg-beast-marquee {
+          0% { transform: translateX(0); }
+          15% { transform: translateX(0); }
+          85% { transform: translateX(min(0px, calc(-100% + 72px))); }
+          100% { transform: translateX(min(0px, calc(-100% + 72px))); }
+        }
+        .rpg-beast-name-container {
+          position: relative;
+          width: 100%;
+          overflow: hidden;
+          height: 14px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        .rpg-beast-name {
+          display: inline-block;
+          max-width: 100%;
+          transition: transform 0.3s ease;
+        }
+        .group:hover .rpg-beast-name,
+        .group:active .rpg-beast-name {
+          max-width: none;
+          overflow: visible;
+          text-overflow: clip;
+          animation: rpg-beast-marquee 3.5s ease-in-out infinite alternate;
+        }
+      `}</style>
     </JRPGWindow>
   );
 };
