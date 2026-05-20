@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// 指定ミリ秒待機するヘルパー
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 export async function POST(request: Request) {
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
@@ -13,16 +16,13 @@ export async function POST(request: Request) {
     const { log } = body;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    
-    // モデル名の候補をリスト化して、成功するまで試す
-    const modelNames = ["gemini-2.5-flash"];
+
+    // モデルの優先順。503/429の場合は次のモデルへフォールバック
+    const modelNames = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
     let advice = "";
     let lastError = null;
 
-    for (const modelName of modelNames) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const prompt = `
+    const prompt = `
 あなたは現役のサッカー日本代表であり、ユーザーにとって「頼れるプロの先輩」です。
 ユーザー（後輩選手）が、自身の分身である3匹の霊獣（火の体、水の技、草の知）のうち、
 今回は特に「${log.category === "Physical" ? "火の体" : log.category === "Skill" ? "水の技" : "草の知"}」に関わる修練を行いました。
@@ -41,15 +41,40 @@ export async function POST(request: Request) {
 - 今回の修練や自己評価を褒めつつ、プロの視点から次の一歩に繋がる具体的なアドバイスや励ましの言葉をかけてください。
 `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        advice = response.text();
-        if (advice) break; // 成功したらループを抜ける
-      } catch (err: any) {
-        lastError = err;
-        console.warn(`Model ${modelName} failed, trying next...`, err.message);
-        continue;
+    for (const modelName of modelNames) {
+      // 同じモデルで最大2回リトライ（503/429の一時的なエラー向け）
+      const MAX_RETRIES = 2;
+      let succeeded = false;
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const result = await model.generateContent(prompt);
+          const response = await result.response;
+          advice = response.text();
+          if (advice) {
+            succeeded = true;
+            break;
+          }
+        } catch (err: any) {
+          lastError = err;
+          const status = err?.status ?? err?.httpError ?? 0;
+          const isRetryable = status === 503 || status === 429;
+
+          if (isRetryable && attempt < MAX_RETRIES) {
+            const waitMs = 600 * (attempt + 1);
+            console.warn(`[coach] Model ${modelName} returned ${status}, retrying in ${waitMs}ms (attempt ${attempt + 1}/${MAX_RETRIES})...`);
+            await sleep(waitMs);
+            continue;
+          }
+
+          // リトライ上限到達 or リトライ不要なエラー → 次のモデルへ
+          console.warn(`[coach] Model ${modelName} failed (status: ${status}), falling back to next model...`, err.message);
+          break;
+        }
       }
+
+      if (succeeded) break;
     }
 
     if (!advice && lastError) {
@@ -61,8 +86,8 @@ export async function POST(request: Request) {
     console.error("Gemini API Error Root:", error);
     const errorMessage = error?.message || "不明なエラー";
     const errorStatus = error?.status || "500";
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       error: "コーチへの相談中にエラーが発生しました。",
       details: `${errorMessage} (Status: ${errorStatus})`
     }, { status: 500 });

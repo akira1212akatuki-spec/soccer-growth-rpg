@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
+// 指定ミリ秒待機するヘルパー
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 export async function POST(req: Request) {
   try {
     const { logs, yearlyGoal, monthlyGoal } = await req.json();
@@ -15,14 +18,12 @@ export async function POST(req: Request) {
     const recentLogs = logs.slice(0, 10);
     const totalHours = logs.reduce((sum: number, log: any) => sum + log.hours, 0);
 
-    const modelNames = ["gemini-2.5-flash"];
+    // モデルの優先順。503/429の場合は次のモデルへフォールバック
+    const modelNames = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
     let advice = "";
     let lastError = null;
 
-    for (const modelName of modelNames) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const prompt = `
+    const prompt = `
 あなたは現役のサッカー日本代表であり、ユーザーにとって「頼れるプロの先輩」です。
 ユーザー（後輩選手）は自身の分身である3匹の霊獣（火の体、水の技、草の知）と共に修行に励んでいます。
 これまでの練習記録と目標を総合的に判断して、プロの視点から目標達成に向けたアドバイスを送ってください。
@@ -43,14 +44,40 @@ ${recentLogs.map((log: any) => `- ${log.category}: ${log.menus.join(", ")} (${lo
 - 最後に、一緒にピッチで戦う日を楽しみにしているような熱い期待の言葉をかけてください。
 `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        advice = response.text();
-        if (advice) break;
-      } catch (err: any) {
-        lastError = err;
-        continue;
+    for (const modelName of modelNames) {
+      // 同じモデルで最大2回リトライ（503/429の一時的なエラー向け）
+      const MAX_RETRIES = 2;
+      let succeeded = false;
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const result = await model.generateContent(prompt);
+          const response = await result.response;
+          advice = response.text();
+          if (advice) {
+            succeeded = true;
+            break;
+          }
+        } catch (err: any) {
+          lastError = err;
+          const status = err?.status ?? err?.httpError ?? 0;
+          const isRetryable = status === 503 || status === 429;
+
+          if (isRetryable && attempt < MAX_RETRIES) {
+            const waitMs = 600 * (attempt + 1);
+            console.warn(`[overall-coach] Model ${modelName} returned ${status}, retrying in ${waitMs}ms (attempt ${attempt + 1}/${MAX_RETRIES})...`);
+            await sleep(waitMs);
+            continue;
+          }
+
+          // リトライ上限到達 or リトライ不要なエラー → 次のモデルへ
+          console.warn(`[overall-coach] Model ${modelName} failed (status: ${status}), falling back to next model...`, err.message);
+          break;
+        }
       }
+
+      if (succeeded) break;
     }
 
     if (!advice && lastError) {
