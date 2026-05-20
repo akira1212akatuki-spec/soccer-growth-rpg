@@ -18,7 +18,12 @@ export async function POST(request: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     // モデルの優先順。503/429の場合は次のモデルへフォールバック
-    const modelNames = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+    const modelNames = [
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-flash-latest",
+      "gemini-flash-lite-latest"
+    ];
     let advice = "";
     let lastError = null;
 
