@@ -263,8 +263,7 @@ export const useGameStore = create<GameState>()(
           practiceStreak: newStreak,
           lastPracticeDate: today,
           streakMultiplier: newMultiplier,
-          // ボーナスは1回使ったらリセット
-          monsterBonusActive: false,
+          // monsterBonusActive は翌日のすべての練習に適用するため、ここでは消費（リセット）しない
         }));
 
         // EXP加算（addEXPが内部でlastEXPResultも更新する）
@@ -285,7 +284,9 @@ export const useGameStore = create<GameState>()(
 
         // 日付が変わる前の魔物情報を yesterdayMonster に退避する
         let yesterdayMonster: YesterdayMonsterState | null = state.yesterdayMonster || null;
+        let isYesterdayDefeated = false;
         if (state.todayMonster) {
+          isYesterdayDefeated = state.todayMonster.defeated;
           const prevMonster = MONSTERS.find((m) => m.id === state.todayMonster?.monsterId);
           if (prevMonster) {
             yesterdayMonster = {
@@ -311,6 +312,8 @@ export const useGameStore = create<GameState>()(
             defeatComment: null,
           },
           yesterdayMonster,
+          // 昨日の魔物を撃退していた場合、本日のすべての練習に2倍ボーナスを適用
+          monsterBonusActive: isYesterdayDefeated,
         });
 
         return monster;
@@ -336,8 +339,6 @@ export const useGameStore = create<GameState>()(
           },
           ...(isDefeated ? {
             showMonsterDefeatModal: true,
-            // 翌日のEXPを2倍にするフラグをON
-            monsterBonusActive: true,
           } : {}),
         });
       },
