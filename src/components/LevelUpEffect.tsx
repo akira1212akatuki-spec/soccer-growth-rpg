@@ -7,7 +7,7 @@ import { useGameStore } from "@/store/useGameStore";
 import { calculateLevelFromEXP } from "@/lib/gameLogic";
 
 export const LevelUpEffect = () => {
-  const { skillEXP, physicalEXP, iqEXP } = useGameStore();
+  const { skillEXP, physicalEXP, iqEXP, lastEXPResult } = useGameStore();
   const prevLevelsSumRef = useRef<number>(0);
   const [showLevelUp, setShowLevelUp] = useState(false);
 
@@ -54,7 +54,8 @@ export const LevelUpEffect = () => {
     prevLevelsSumRef.current = currentLevelsSum;
   }, [skillEXP, physicalEXP, iqEXP]);
 
-  if (!showLevelUp) return null;
+  // EXPResultModal表示中はオーバーレイを抑制（紙吹雪と効果音はそのまま実行される）
+  if (!showLevelUp || lastEXPResult) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/40">
@@ -66,3 +67,4 @@ export const LevelUpEffect = () => {
     </div>
   );
 };
+

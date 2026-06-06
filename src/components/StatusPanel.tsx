@@ -3,14 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { JRPGWindow } from "./ui/JRPGWindow";
 import { useGameStore } from "@/store/useGameStore";
-import { getLevelProgress, getCharacterName, getEvolutionForm } from "@/lib/gameLogic";
-import { MONSTERS } from "@/lib/monsters";
+import { getLevelProgress, getCharacterName, getEvolutionForm, getLocalDateString } from "@/lib/gameLogic";
+import { MONSTERS, DEMON_KING } from "@/lib/monsters";
 
 export const StatusPanel = () => {
   const {
     playerName, skillEXP, physicalEXP, iqEXP,
     yearlyGoal, yearlyDeadline, monthlyGoal, monthlyDeadline,
-    overallAdvice, todayMonster, yesterdayMonster, monsterBonusActive,
+    overallAdvice, todayMonster, yesterdayMonster, monsterBonusDate,
   } = useGameStore();
   const [mounted, setMounted] = useState(false);
 
@@ -30,8 +30,8 @@ export const StatusPanel = () => {
     const barColor = type === "Fire" ? "bg-red-500" : type === "Water" ? "bg-blue-500" : "bg-green-500";
 
     return (
-      <div className="flex flex-col items-center bg-slate-900/40 p-2 border border-slate-700 rounded relative overflow-hidden group cursor-pointer w-full">
-        <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center relative overflow-hidden mb-1">
+      <div className="flex flex-row md:flex-col items-center bg-slate-900/40 p-3 md:p-2 border border-slate-700 rounded relative overflow-hidden group cursor-pointer w-full gap-3 md:gap-1">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex-shrink-0 flex items-center justify-center relative overflow-hidden">
           <img 
             src={imagePath} 
             alt={charName}
@@ -41,19 +41,32 @@ export const StatusPanel = () => {
             }}
           />
         </div>
-        <div className="w-full overflow-hidden text-center mt-1 select-none">
-          <div className="rpg-beast-name-container">
-            <span className={`rpg-beast-name text-[10px] font-bold ${colorClass} whitespace-nowrap text-ellipsis overflow-hidden`}>
+        <div className="flex-1 md:w-full flex flex-col justify-center">
+          {/* 1. 名前 */}
+          <div className="w-full text-left md:text-center select-none overflow-hidden">
+            <span className={`text-[12px] sm:text-xs md:text-[10px] font-black ${colorClass} tracking-wide whitespace-nowrap`}>
               {charName}
             </span>
           </div>
-        </div>
-        <div className="w-full mt-1">
-          <div className="flex justify-between text-[10px] mb-0.5">
+          
+          {/* 2 & 3. モバイル用縦積み（md未満） */}
+          <div className="flex flex-col md:hidden gap-0.5 mt-0.5">
+            <div className="text-[10px] font-bold text-slate-200">
+              {label} <span className="text-white">Lv.{level}</span>
+            </div>
+            <div className="text-[9px] text-slate-400 font-mono">
+              EXP: <span className="text-slate-300">{Math.floor(expInLevel)} / {expNeededInLevel}</span>
+            </div>
+          </div>
+
+          {/* 2 & 3. PC用横並び（md以上） */}
+          <div className="hidden md:flex justify-between text-[10px] mt-1 mb-0.5">
             <span className="font-bold text-white">{label} Lv.{level}</span>
             <span className="text-slate-400">{Math.floor(expInLevel)} / {expNeededInLevel} EXP</span>
           </div>
-          <div className="w-full bg-slate-800 border border-slate-600 h-1.5">
+
+          {/* 4. 経験値（ゲージ） */}
+          <div className="w-full bg-slate-800 border border-slate-600 h-1.5 mt-1 rounded-full overflow-hidden">
             <div className={`${barColor} h-full transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
           </div>
         </div>
@@ -89,11 +102,11 @@ export const StatusPanel = () => {
         <MonsterSection 
           todayMonster={todayMonster} 
           yesterdayMonster={yesterdayMonster}
-          monsterBonusActive={monsterBonusActive}
+          monsterBonusDate={monsterBonusDate}
         />
 
         {/* 3匹の霊獣 */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           {renderBeast("Fire", physicalEXP, "体力")}
           {renderBeast("Water", skillEXP, "技")}
           {renderBeast("Leaf", iqEXP, "知")}
@@ -145,15 +158,31 @@ export const StatusPanel = () => {
 const MonsterSection = ({ 
   todayMonster, 
   yesterdayMonster, 
-  monsterBonusActive 
+  monsterBonusDate 
 }: { 
   todayMonster: import("@/store/useGameStore").TodayMonsterState | null;
   yesterdayMonster: import("@/store/useGameStore").YesterdayMonsterState | null;
-  monsterBonusActive: boolean;
+  monsterBonusDate: string | null;
 }) => {
   const [imgError, setImgError] = useState(false);
+  const { monsterDefeatStreak } = useGameStore();
 
   if (!todayMonster) return null;
+
+  const today = getLocalDateString();
+  const isBonusToday = monsterBonusDate === today;
+
+  // 魔王戦判定
+  if (todayMonster.isDemonKing) {
+    return (
+      <DemonKingSection 
+        todayMonster={todayMonster}
+        yesterdayMonster={yesterdayMonster}
+        isBonusToday={isBonusToday}
+      />
+    );
+  }
+
   const monster = MONSTERS.find((m) => m.id === todayMonster.monsterId);
   if (!monster) return null;
 
@@ -169,7 +198,7 @@ const MonsterSection = ({
     monster.category === "Physical" ? "bg-blue-500" :
     monster.category === "IQ" ? "bg-purple-500" : "bg-red-500";
 
-  const showBonusBanner = monsterBonusActive && yesterdayMonster && yesterdayMonster.defeated;
+  const showBonusBanner = isBonusToday && yesterdayMonster && yesterdayMonster.defeated;
 
   const bonusBanner = showBonusBanner ? (
     <div className="bg-yellow-950/40 border-2 border-yellow-500 rounded p-3 flex items-center justify-between animate-pulse">
@@ -180,13 +209,16 @@ const MonsterSection = ({
             昨日は見事、「{yesterdayMonster.monsterName}」を追い払った！
           </p>
           <p className="text-white text-[10px] md:text-xs font-bold mt-0.5">
-            経験値２倍ボーナス中！ (本日の最初の練習に適用されます)
+            経験値２倍ボーナス中！
           </p>
         </div>
       </div>
       <span className="text-xl md:text-2xl">🔥</span>
     </div>
   ) : null;
+
+  // 魔王降臨までのカウントダウン計算
+  const daysUntilDemonKing = Math.max(0, 7 - monsterDefeatStreak);
 
   if (todayMonster.defeated) {
     return (
@@ -204,6 +236,14 @@ const MonsterSection = ({
             <div className="bg-slate-900/60 border border-slate-600 rounded p-2">
               <span className="text-[10px] text-yellow-400 font-bold block mb-1">⚽ プロからのコメント</span>
               <p className="text-[10px] text-slate-200 italic leading-relaxed">「{todayMonster.defeatComment}」</p>
+            </div>
+          )}
+          {/* 魔王降臨カウントダウン（連続撃退中のみ表示） */}
+          {monsterDefeatStreak > 0 && daysUntilDemonKing > 0 && (
+            <div className="bg-fuchsia-950/30 border border-fuchsia-500/50 rounded p-2 text-center">
+              <p className="text-fuchsia-300 text-[11px] font-bold">
+                👑 あと<span className="text-fuchsia-400 text-sm font-black mx-1">{daysUntilDemonKing}</span>日魔物を追い払ったら、魔王降臨
+              </p>
             </div>
           )}
         </div>
@@ -250,6 +290,122 @@ const MonsterSection = ({
               style={{ width: `${percentage}%` }}
             />
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 魔王戦専用セクション
+const DemonKingSection = ({
+  todayMonster,
+  yesterdayMonster,
+  isBonusToday,
+}: {
+  todayMonster: import("@/store/useGameStore").TodayMonsterState;
+  yesterdayMonster: import("@/store/useGameStore").YesterdayMonsterState | null;
+  isBonusToday: boolean;
+}) => {
+  const [imgError, setImgError] = useState(false);
+
+  const showBonusBanner = isBonusToday && yesterdayMonster && yesterdayMonster.defeated;
+
+  const bonusBanner = showBonusBanner ? (
+    <div className="bg-yellow-950/40 border-2 border-yellow-500 rounded p-3 flex items-center justify-between animate-pulse">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">✨</span>
+        <div>
+          <p className="text-yellow-400 font-black text-xs md:text-sm tracking-wide">
+            昨日は見事、「{yesterdayMonster.monsterName}」を追い払った！
+          </p>
+          <p className="text-white text-[10px] md:text-xs font-bold mt-0.5">
+            経験値２倍ボーナス中！
+          </p>
+        </div>
+      </div>
+      <span className="text-xl md:text-2xl">🔥</span>
+    </div>
+  ) : null;
+
+  const map = todayMonster.accumulatedMinutesMap;
+
+  const renderDemonGauge = (label: string, category: "Physical" | "IQ" | "Skill", color: string) => {
+    const required = DEMON_KING.requiredMinutesMap[category];
+    const current = map[category] || 0;
+    const pct = Math.min(100, (current / required) * 100);
+    const done = current >= required;
+    return (
+      <div className="mb-2">
+        <div className="flex justify-between text-[10px] mb-0.5">
+          <span className={`font-bold ${done ? "text-green-400" : "text-slate-300"}`}>
+            {done ? "✅ " : ""}{label}
+          </span>
+          <span className="text-white font-bold">
+            {current}分 / {required}分
+          </span>
+        </div>
+        <div className="w-full bg-slate-900 border border-slate-600 h-2.5 rounded overflow-hidden">
+          <div
+            className={`h-full transition-all duration-700 ${done ? "bg-green-500" : color}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  if (todayMonster.defeated) {
+    return (
+      <div className="flex flex-col gap-3">
+        {bonusBanner}
+        <div className="bg-fuchsia-900/20 border-2 border-fuchsia-500 rounded p-3 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-fuchsia-400 font-black text-sm">👑 魔王撃退！伝説の勇者よ！</p>
+              <p className="text-[10px] text-fuchsia-300 font-bold">{DEMON_KING.name} を追い払った</p>
+            </div>
+            <span className="text-3xl">🏆</span>
+          </div>
+          {todayMonster.defeatComment && (
+            <div className="bg-slate-900/60 border border-slate-600 rounded p-2">
+              <span className="text-[10px] text-yellow-400 font-bold block mb-1">⚽ プロからのコメント</span>
+              <p className="text-[10px] text-slate-200 italic leading-relaxed">「{todayMonster.defeatComment}」</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {bonusBanner}
+      <div className={`${DEMON_KING.bgColor} border-2 ${DEMON_KING.borderColor} rounded p-3 flex flex-col gap-3`}>
+        {/* 魔王画像 */}
+        <div className="w-full flex justify-center">
+          {!imgError ? (
+            <img
+              src={DEMON_KING.imagePath}
+              alt={DEMON_KING.name}
+              className="w-full max-h-56 object-contain drop-shadow-[0_0_30px_rgba(200,0,255,0.5)]"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <span className="text-8xl">👑</span>
+          )}
+        </div>
+        {/* 魔王名 */}
+        <div>
+          <p className={`font-black text-lg text-center ${DEMON_KING.color}`}>{DEMON_KING.name}</p>
+          <p className="text-[10px] text-fuchsia-200 text-center mt-0.5 italic">
+            3魔将すべての撃退条件を満たせ！
+          </p>
+        </div>
+        {/* 3つのゲージ */}
+        <div>
+          {renderDemonGauge("Physical（フィジカル）", "Physical", "bg-blue-500")}
+          {renderDemonGauge("IQ（サッカーIQ）", "IQ", "bg-purple-500")}
+          {renderDemonGauge("Skill（ボールタッチ）", "Skill", "bg-red-500")}
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { calculateLevelFromEXP, getEvolutionForm, getLocalDateString } from '@/lib/gameLogic';
-import { MonsterDefinition, MONSTERS, selectTodayMonster } from '@/lib/monsters';
+import { MonsterDefinition, MonsterCategory, MONSTERS, DEMON_KING, selectTodayMonster } from '@/lib/monsters';
 
 export type PracticeLog = {
   id: string;
@@ -38,10 +38,14 @@ export type EXPResult = {
 export type TodayMonsterState = {
   monsterId: string;
   date: string; // YYYY-MM-DD
-  accumulatedMinutes: number; // 当日の対象カテゴリ累計（分）
+  accumulatedMinutes: number; // 当日の対象カテゴリ累計（分）— 通常魔物用
   defeated: boolean;
   /** 撃退後のAIコメント */
   defeatComment: string | null;
+  /** 魔王戦かどうか */
+  isDemonKing: boolean;
+  /** 魔王戦用: 各カテゴリの累計分 */
+  accumulatedMinutesMap: Record<MonsterCategory, number>;
 };
 
 export type YesterdayMonsterState = {
@@ -71,10 +75,12 @@ type GameState = {
   // ─── 心の魔物システム ───
   todayMonster: TodayMonsterState | null;
   yesterdayMonster: YesterdayMonsterState | null;
-  /** 翌日EXP2倍ボーナスが有効かどうか */
-  monsterBonusActive: boolean;
+  /** 翌日EXP2倍ボーナスが有効な日付（その日付の練習のみ2倍） */
+  monsterBonusDate: string | null;
   /** 撃退成功モーダルを表示するトリガー */
   showMonsterDefeatModal: boolean;
+  /** 魔物の連続撃退日数 */
+  monsterDefeatStreak: number;
   setInitialSetup: (name: string, yearly: string, yearlyDead: string, monthly: string, monthlyDead: string) => void;
   updateGoals: (yearly: string, yearlyDead: string, monthly: string, monthlyDead: string) => void;
   addEXP: (category: "Skill" | "Physical" | "IQ", amount: number) => void;
@@ -89,7 +95,7 @@ type GameState = {
   /** 練習記録時にstreakを更新してEXPを加算する統合アクション */
   recordPractice: (log: PracticeLog, category: "Skill" | "Physical" | "IQ", baseGainedExp: number) => { finalExp: number; streak: number; multiplier: number };
   /** 日替わりで魔物を初期化する（ログイン時に呼ぶ） */
-  initDailyMonster: () => MonsterDefinition | null;
+  initDailyMonster: () => MonsterDefinition | "demon_king" | null;
   /** 修練後に対象カテゴリの累計分を加算し、撃退判定を行う */
   addMonsterProgress: (category: "Skill" | "Physical" | "IQ", minutes: number) => void;
   /** 撃退モーダルを閉じる */
@@ -120,8 +126,9 @@ export const useGameStore = create<GameState>()(
       // 心の魔物
       todayMonster: null,
       yesterdayMonster: null,
-      monsterBonusActive: false,
+      monsterBonusDate: null,
       showMonsterDefeatModal: false,
+      monsterDefeatStreak: 0,
       menuHistory: {
         Skill: ["フリードリブル", "各種リフティング", "コーン・ドリブル", "ターン練習", "シュート練習", "パス練習"],
         Physical: ["走り込み", "ダッシュ", "筋トレ", "体幹トレーニング"],
@@ -250,8 +257,8 @@ export const useGameStore = create<GameState>()(
 
         // 複利倍率: 1.05^(streak-1)、最大5.0倍
         const newMultiplier = Math.min(5.0, Math.pow(1.05, newStreak - 1));
-        // 翌日ボーナス（魔物撃退済み）
-        const bonusMultiplier = state.monsterBonusActive ? 2.0 : 1.0;
+        // 翌日ボーナス（魔物撃退済み）— 練習日がmonsterBonusDateと一致する場合のみ
+        const bonusMultiplier = (state.monsterBonusDate && state.monsterBonusDate === today) ? 2.0 : 1.0;
         // 複利×ボーナス適用後のEXP
         const finalExp = Math.floor(baseGainedExp * newMultiplier * bonusMultiplier);
 
@@ -263,7 +270,7 @@ export const useGameStore = create<GameState>()(
           practiceStreak: newStreak,
           lastPracticeDate: today,
           streakMultiplier: newMultiplier,
-          // monsterBonusActive は翌日のすべての練習に適用するため、ここでは消費（リセット）しない
+          // monsterBonusDate は翌日のすべての練習に適用するため、ここでは消費（リセット）しない
         }));
 
         // EXP加算（addEXPが内部でlastEXPResultも更新する）
@@ -285,14 +292,26 @@ export const useGameStore = create<GameState>()(
         // 日付が変わる前の魔物情報を yesterdayMonster に退避する
         let yesterdayMonster: YesterdayMonsterState | null = state.yesterdayMonster || null;
         let isYesterdayDefeated = false;
+        let newDefeatStreak = state.monsterDefeatStreak;
+
         if (state.todayMonster) {
           isYesterdayDefeated = state.todayMonster.defeated;
-          const prevMonster = MONSTERS.find((m) => m.id === state.todayMonster?.monsterId);
-          if (prevMonster) {
+          const isDK = state.todayMonster.isDemonKing;
+          const prevMonsterName = isDK
+            ? DEMON_KING.name
+            : MONSTERS.find((m) => m.id === state.todayMonster?.monsterId)?.name;
+          if (prevMonsterName) {
             yesterdayMonster = {
-              monsterName: prevMonster.name,
+              monsterName: prevMonsterName,
               defeated: state.todayMonster.defeated,
             };
+          }
+
+          // 連続撃退ストリーク更新
+          if (state.todayMonster.defeated) {
+            newDefeatStreak = state.monsterDefeatStreak + 1;
+          } else {
+            newDefeatStreak = 0;
           }
         }
 
@@ -300,6 +319,27 @@ export const useGameStore = create<GameState>()(
         const todayCategories = state.schedules
           .filter(s => s.date === today)
           .map(s => s.category);
+
+        // 7日連続撃退 → 魔王出現
+        const isDemonKingDay = newDefeatStreak >= 7;
+
+        if (isDemonKingDay) {
+          set({
+            todayMonster: {
+              monsterId: "demon_king",
+              date: today,
+              accumulatedMinutes: 0,
+              defeated: false,
+              defeatComment: null,
+              isDemonKing: true,
+              accumulatedMinutesMap: { Physical: 0, IQ: 0, Skill: 0 },
+            },
+            yesterdayMonster,
+            monsterBonusDate: isYesterdayDefeated ? today : null,
+            monsterDefeatStreak: newDefeatStreak,
+          });
+          return "demon_king";
+        }
 
         const monster = selectTodayMonster(todayCategories);
 
@@ -310,10 +350,13 @@ export const useGameStore = create<GameState>()(
             accumulatedMinutes: 0,
             defeated: false,
             defeatComment: null,
+            isDemonKing: false,
+            accumulatedMinutesMap: { Physical: 0, IQ: 0, Skill: 0 },
           },
           yesterdayMonster,
           // 昨日の魔物を撃退していた場合、本日のすべての練習に2倍ボーナスを適用
-          monsterBonusActive: isYesterdayDefeated,
+          monsterBonusDate: isYesterdayDefeated ? today : null,
+          monsterDefeatStreak: newDefeatStreak,
         });
 
         return monster;
@@ -324,23 +367,43 @@ export const useGameStore = create<GameState>()(
         const { todayMonster } = state;
         if (!todayMonster || todayMonster.defeated) return;
 
-        // import済みのMONSTERSからカテゴリ確認
-        const monster = MONSTERS.find((m) => m.id === todayMonster.monsterId);
-        if (!monster || monster.category !== category) return;
+        if (todayMonster.isDemonKing) {
+          // 魔王戦: 全カテゴリを別々に蓄積し、3つ全ての条件達成で撃退
+          const newMap = { ...todayMonster.accumulatedMinutesMap };
+          newMap[category] = (newMap[category] || 0) + minutes;
 
-        const newMinutes = todayMonster.accumulatedMinutes + minutes;
-        const isDefeated = newMinutes >= monster.requiredMinutes;
+          const isDefeated =
+            newMap.Physical >= DEMON_KING.requiredMinutesMap.Physical &&
+            newMap.IQ >= DEMON_KING.requiredMinutesMap.IQ &&
+            newMap.Skill >= DEMON_KING.requiredMinutesMap.Skill;
 
-        set({
-          todayMonster: {
-            ...todayMonster,
-            accumulatedMinutes: newMinutes,
-            defeated: isDefeated,
-          },
-          ...(isDefeated ? {
-            showMonsterDefeatModal: true,
-          } : {}),
-        });
+          set({
+            todayMonster: {
+              ...todayMonster,
+              accumulatedMinutesMap: newMap,
+              defeated: isDefeated,
+            },
+            ...(isDefeated ? { showMonsterDefeatModal: true } : {}),
+          });
+        } else {
+          // 通常魔物: 対象カテゴリのみ
+          const monster = MONSTERS.find((m) => m.id === todayMonster.monsterId);
+          if (!monster || monster.category !== category) return;
+
+          const newMinutes = todayMonster.accumulatedMinutes + minutes;
+          const isDefeated = newMinutes >= monster.requiredMinutes;
+
+          set({
+            todayMonster: {
+              ...todayMonster,
+              accumulatedMinutes: newMinutes,
+              defeated: isDefeated,
+            },
+            ...(isDefeated ? {
+              showMonsterDefeatModal: true,
+            } : {}),
+          });
+        }
       },
 
       closeMonsterDefeatModal: () => set({ showMonsterDefeatModal: false }),

@@ -15,7 +15,7 @@ import { MonsterDefinition } from "@/lib/monsters";
 export default function Home() {
   const { playerName, yearlyGoal, initDailyMonster } = useGameStore();
   const [mounted, setMounted] = useState(false);
-  const [appearMonster, setAppearMonster] = useState<MonsterDefinition | null>(null);
+  const [appearMonster, setAppearMonster] = useState<MonsterDefinition | "demon_king" | null>(null);
 
   useEffect(() => {
     setMounted(true);

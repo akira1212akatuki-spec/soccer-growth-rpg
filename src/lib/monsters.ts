@@ -3,7 +3,7 @@
 export type MonsterCategory = "Skill" | "Physical" | "IQ";
 
 export interface MonsterDefinition {
-  id: "men_dukuse" | "tsuka_retta" | "gemu_yameraaren";
+  id: "men_dukuse" | "tsuka_retta" | "gemu_yameraaren" | "demon_king";
   name: string;
   category: MonsterCategory;
   requiredMinutes: number; // 撃退に必要な累計分数
@@ -13,6 +13,34 @@ export interface MonsterDefinition {
   bgColor: string;         // 背景カラー
   borderColor: string;     // ボーダーカラー
 }
+
+/** 魔王専用定義 — 3カテゴリ全ての条件を持つ */
+export interface DemonKingDefinition {
+  id: "demon_king";
+  name: string;
+  description: string;
+  imagePath: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  requiredMinutesMap: Record<MonsterCategory, number>;
+}
+
+export const DEMON_KING: DemonKingDefinition = {
+  id: "demon_king",
+  name: "魔王ネガロ・マインドブレイク",
+  description:
+    "3魔将の頂点に君臨する、魔界の絶対的な王。人間が夜、1日を振り返って「あのとき、ああすればよかった」と少しでも後悔した瞬間、その思考に侵入。ネガティブな感情を100倍に増幅させ、「自分はもう何をやってもダメだ」という過剰な自己否定へと変えてしまう。",
+  imagePath: "/assets/monsters/demon_king.png",
+  color: "text-fuchsia-400",
+  bgColor: "bg-fuchsia-950/40",
+  borderColor: "border-fuchsia-500",
+  requiredMinutesMap: {
+    Physical: 60,
+    IQ: 45,
+    Skill: 90,
+  },
+};
 
 export const MONSTERS: MonsterDefinition[] = [
   {
